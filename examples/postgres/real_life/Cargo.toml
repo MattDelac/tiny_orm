@@ -1,0 +1,10 @@
+[package]
+name = "sqlx-tiny-orm-example-postgres-real-life"
+version = "0.1.0"
+edition = "2021"
+workspace = "../../../"
+
+[dependencies]
+sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "postgres", "chrono", "uuid", "derive"] }
+sqlx-tiny-orm = { path = "../../../", features = [ "postgres" ] }
+tokio = { version = "1.41.0", features = ["rt", "macros"]}

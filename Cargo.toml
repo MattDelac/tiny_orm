@@ -1,0 +1,30 @@
+[workspace]
+members = [
+    ".",
+    "examples/postgres/real_life",
+    "examples/sqlite/simple",
+]
+
+[package]
+name = "sqlx-tiny-orm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+convert_case = "<1.0"
+sqlx = { version = ">=0.7, <1.0", default-features = false }
+
+[features]
+sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
+mysql = ["sqlx/mysql"]
+
+[dev-dependencies]
+sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "derive"] }
+sqlx-tiny-orm = { path = ".", features = [ "sqlite" ] }
