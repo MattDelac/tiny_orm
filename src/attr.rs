@@ -6,7 +6,6 @@ use convert_case::{Case, Casing};
 use syn::{parse_str, punctuated::Punctuated, Attribute, Data, DeriveInput, Expr, ExprLit, Fields, Ident, Lit, Meta, Token, Type};
 
 const NAME_MACRO_OPERATION_ARG: &str = "tiny_orm";
-const ALL_OPERATIONS: [&str; 5] = ["get", "list", "create", "update", "delete"];
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operation {
