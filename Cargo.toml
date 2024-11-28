@@ -1,8 +1,8 @@
 [workspace]
 members = [
     ".",
-    "examples/postgres/real_life",
-    "examples/sqlite/simple",
+    "examples/postgres",
+    "examples/sqlite",
 ]
 
 [package]

@@ -1,9 +1,11 @@
-use sqlx::{Row, FromRow, SqlitePool};
+use sqlx::{types::chrono::{DateTime, Utc}, FromRow, Row, SqlitePool};
 use sqlx_tiny_orm::TinyORM;
 
 #[derive(Debug, FromRow, TinyORM, Clone)]
 struct Todos {
     id: i32,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
     description: String,
     done: bool,
 }
@@ -14,11 +16,13 @@ async fn main() {
     
     let new_todo = Todos {
         id: 1,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
         description: "My first item".to_string(),
         done: false,
     };
 
-    let todo_id = new_todo.insert(&pool).await.expect("Todo item should be created");
+    let todo_id = new_todo.create(&pool).await.expect("Todo item should be created");
     println!("My first todo created {:?}", todo_id);
 
     let first_todo = Todos::get_by_id(&pool, todo_id).await.unwrap();

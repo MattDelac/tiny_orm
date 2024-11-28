@@ -170,7 +170,8 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
     let return_type = ReturnType::EntireRow(attr.return_object.clone());
     let function_output = return_type.clone().function_output();
-    let query_builder_execution = return_type.query_builder_execution();
+    let query_builder_execution = return_type.clone().query_builder_execution();
+    let returning_statement = return_type.returning_statement();
 
     let table_name = attr.table_name.clone().to_string();
     let (pk_name, pk_ident) = match attr.primary_key {
@@ -210,6 +211,8 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
             qb.push(#pk_name);
             qb.push(" = ");
             qb.push_bind(&self.#pk_ident);
+
+            #returning_statement
 
             #query_builder_execution            
         }
@@ -382,6 +385,8 @@ mod tests {
                     qb.push(" = ");
                     qb.push_bind(&self.id);
         
+                    qb.push(" RETURNING * ");
+                    
                     qb.build_query_as()
                     .fetch_one(db)
                     .await
@@ -495,6 +500,8 @@ mod tests {
                     qb.push("custom_id");
                     qb.push(" = ");
                     qb.push_bind(&self.custom_id);
+
+                    qb.push(" RETURNING * ");
         
                     qb.build_query_as()
                     .fetch_one(db)

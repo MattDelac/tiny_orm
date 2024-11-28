@@ -1,0 +1,10 @@
+[package]
+name = "sqlx-tiny-orm-example-sqlite"
+version = "0.1.0"
+edition = "2021"
+workspace = "../../"
+
+[dependencies]
+sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "derive", "chrono"] }
+sqlx-tiny-orm = { path = "../../", features = [ "sqlite" ] }
+tokio = { version = "1.41.0", features = ["rt", "macros"]}

@@ -3,7 +3,7 @@
 ## Setup
 
 ```
-$ sqlx db reset --database-url sqlite:simple.db
+sqlx db reset --database-url sqlite:simple.db
 ```
 
 ## Usage
