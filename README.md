@@ -1,4 +1,4 @@
-[![ci](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml) | [![Publish](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml)
+[![ci](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml) | [![Publish](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml/badge.svg)](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml)
 
 # Tiny ORM
 
