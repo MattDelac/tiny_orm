@@ -36,7 +36,7 @@ fn generate_impl(attr: &attr::Attr) -> proc_macro2::TokenStream {
     };
 
     let create_impl = if attr.operations.contains(&attr::Operation::Create) {
-        quotes::create_fn(attr) 
+        quotes::create_fn(attr)
     } else {
         quote! {}
     };

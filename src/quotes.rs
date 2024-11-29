@@ -1,6 +1,9 @@
 use quote::{format_ident, quote};
 
-use crate::{attr::{Attr, PrimaryKey, ReturnObject}, database};
+use crate::{
+    attr::{Attr, PrimaryKey, ReturnObject},
+    database,
+};
 
 #[derive(Debug, Clone)]
 enum ReturnType {
@@ -19,7 +22,7 @@ impl ReturnType {
                 quote! {
                     sqlx::Result<#pk_type>
                 }
-            },
+            }
             ReturnType::EntireRow(return_object) => quote! {
                 sqlx::Result<#return_object>
             },
@@ -31,7 +34,7 @@ impl ReturnType {
             },
             ReturnType::None => quote! {
                 sqlx::Result<()>
-            }
+            },
         }
     }
 
@@ -43,11 +46,13 @@ impl ReturnType {
                     qb.push(" RETURNING ");
                     qb.push(#pk_name);
                 }
-            },
-            ReturnType::EntireRow(_) | ReturnType::OptionalRow(_) | ReturnType::MultipleRows(_) => quote! {
-                qb.push(" RETURNING * ");
-            },
-            ReturnType::None => quote! {}
+            }
+            ReturnType::EntireRow(_) | ReturnType::OptionalRow(_) | ReturnType::MultipleRows(_) => {
+                quote! {
+                    qb.push(" RETURNING * ");
+                }
+            }
+            ReturnType::None => quote! {},
         }
     }
 
@@ -79,7 +84,7 @@ impl ReturnType {
                 .execute(db)
                 .await
                 .map(|_| ())
-            }
+            },
         }
     }
 }
@@ -90,7 +95,7 @@ pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.query_builder_execution();
     let table_name = attr.table_name.clone().to_string();
-    
+
     let (pk_name, pk_type) = match attr.primary_key {
         Some(ref pk) => (&pk.name, &pk._type),
         None => panic!("No primary key field found which is mandatory for the 'get' operation"),
@@ -131,13 +136,13 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
 
     let return_type = match attr.primary_key.clone() {
         None => ReturnType::EntireRow(attr.return_object.clone()),
-        Some(primary_key) => ReturnType::PrimaryKey(primary_key)
+        Some(primary_key) => ReturnType::PrimaryKey(primary_key),
     };
-        
+
     let function_output = return_type.clone().function_output();
     let returning_statement = return_type.clone().returning_statement();
     let query_builder_execution = return_type.query_builder_execution();
-    
+
     let field_idents: Vec<syn::Ident> = attr
         .field_names
         .iter()
@@ -214,7 +219,7 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
 
             #returning_statement
 
-            #query_builder_execution            
+            #query_builder_execution
         }
     }
 }
@@ -265,10 +270,21 @@ mod tests {
                 table_name: TableName::new("contact".to_string()),
                 return_object: format_ident!("Self"),
                 primary_key: Some(Column::new("id".to_string(), parse_quote!(i64))),
-                created_at: Some(Column::new("created_at".to_string(), parse_quote!(DateTime<Utc>))),
-                updated_at: Some(Column::new("updated_at".to_string(), parse_quote!(DateTime<Utc>))),
-                field_names: vec!["id".to_string(), "created_at".to_string(), "updated_at".to_string(), "last_name".to_string()],
-                operations: Operation::all(), 
+                created_at: Some(Column::new(
+                    "created_at".to_string(),
+                    parse_quote!(DateTime<Utc>),
+                )),
+                updated_at: Some(Column::new(
+                    "updated_at".to_string(),
+                    parse_quote!(DateTime<Utc>),
+                )),
+                field_names: vec![
+                    "id".to_string(),
+                    "created_at".to_string(),
+                    "updated_at".to_string(),
+                    "last_name".to_string(),
+                ],
+                operations: Operation::all(),
             }
         }
 
@@ -303,7 +319,7 @@ mod tests {
 
             assert_eq!(generated, expected);
         }
-    
+
         #[test]
         fn test_generate_get_by_id_method() {
             let generated = clean_tokens(get_by_id_fn(&input()));
@@ -316,7 +332,7 @@ mod tests {
                     qb.push("id");
                     qb.push(" = ");
                     qb.push_bind(id);
-        
+
                     qb.build_query_as()
                     .fetch_optional(db)
                     .await
@@ -334,7 +350,7 @@ mod tests {
                 pub async fn list_all(db: &sqlx::Pool<sqlx::Sqlite>) -> sqlx::Result<Vec<Self>> {
                     let mut qb = sqlx::QueryBuilder::new("SELECT * FROM ");
                     qb.push("contact");
-        
+
                     qb.build_query_as()
                     .fetch_all(db)
                     .await
@@ -353,7 +369,7 @@ mod tests {
                     let mut qb = sqlx::QueryBuilder::new("UPDATE ");
                     qb.push("contact");
                     qb.push(" SET ");
-        
+
                     let mut first = true;
 
                     if !first {
@@ -379,14 +395,14 @@ mod tests {
                     qb.push(" = ");
                     qb.push_bind(&self.last_name);
                     first = false;
-        
+
                     qb.push(" WHERE ");
                     qb.push("id");
                     qb.push(" = ");
                     qb.push_bind(&self.id);
-        
+
                     qb.push(" RETURNING * ");
-                    
+
                     qb.build_query_as()
                     .fetch_one(db)
                     .await
@@ -435,7 +451,11 @@ mod tests {
                 primary_key: None,
                 created_at: None,
                 updated_at: None,
-                field_names: vec!["first_name".to_string(), "last_name".to_string(), "email".to_string()],
+                field_names: vec![
+                    "first_name".to_string(),
+                    "last_name".to_string(),
+                    "email".to_string(),
+                ],
                 operations: vec![Operation::Create],
             };
 
@@ -485,7 +505,7 @@ mod tests {
                     let mut qb = sqlx::QueryBuilder::new("UPDATE ");
                     qb.push("contact");
                     qb.push(" SET ");
-        
+
                     let mut first = true;
 
                     if !first {
@@ -502,7 +522,7 @@ mod tests {
                     qb.push_bind(&self.custom_id);
 
                     qb.push(" RETURNING * ");
-        
+
                     qb.build_query_as()
                     .fetch_one(db)
                     .await
