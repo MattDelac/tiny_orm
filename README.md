@@ -145,3 +145,15 @@ Goal of TinyORM is to stay tiny. That being said there are still a few things I 
 -- For example, being able to have `Utc.now()` on the `update()` method for the `updated_at` if the field is of type `DateTime<Utc>`
 - [ ] Ability to skip some fields if not set (especially for the create and update methods).
 -- For example if the field is of type `SetOption<DateTime<Utc>>` then it would only put the field as part of the query if the value if of `Set(value)`. It would skip it if it's of value `NotSet`.
+
+## Release
+One PR with the following
+```sh
+make release VERSION=v0.1.2
+```
+
+then add the tag and push it to main
+```sh
+git tag -a v0.1.2 -m "Release v0.1.2"
+git push origin main --tags
+```
