@@ -46,6 +46,7 @@ jobs:
       mysql:
         image: mysql:9
         env:
+          MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: examples
           MYSQL_USER: user
           MYSQL_PASSWORD: password
