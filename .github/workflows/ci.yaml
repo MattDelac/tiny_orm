@@ -18,6 +18,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
+      - name: Package the library
+        run: cargo package --features sqlite
 
   unit-tests:
     runs-on: ubuntu-latest
