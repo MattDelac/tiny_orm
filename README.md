@@ -1,3 +1,5 @@
+[![ci](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml) | [![Publish](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml)
+
 # Tiny ORM
 
 A minimal ORM for CRUD operations. Built on top of SQLx and with its QueryBuilder. Support Sqlite, Postgres and MySQL right off the bat. It has smart defaults and is also flexible.
