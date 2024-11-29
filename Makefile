@@ -15,6 +15,6 @@ release:
 	fi
 	@VERSION_NUM=$$(echo "$(VERSION)" | sed 's/^v//') && \
 	sed -i.bak "s/^version = \".*\"/version = \"$$VERSION_NUM\"/" Cargo.toml && \
-	sed -i.bak "s/tiny-orm = {version = \".*\"/tiny-orm = {version = \"$$VERSION_NUM\"/" README.md && \
+	sed -i.bak "s/tiny-orm = {version = \"[^\"]*\"/tiny-orm = {version = \"$$VERSION_NUM\"/" README.md && \
 	rm Cargo.toml.bak README.md.bak && \
 	echo "Version updated to $(VERSION) in Cargo.toml and README.md"
