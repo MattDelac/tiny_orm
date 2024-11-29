@@ -1,0 +1,70 @@
+name: ci
+
+on:
+  workflow_call: {}
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.1
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests
+        run: cargo test --lib --features sqlite
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: examples
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      mysql:
+        image: mysql:9
+        env:
+          MYSQL_DATABASE: examples
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests on sqlite
+        run: |
+          cd examples/sqlite
+          sqlx db setup --database-url sqlite:simple.db
+          cargo run --example sqlite --features sqlite
+
+      - name: Run tests on postgres
+        run: |
+          cd examples/postgres
+          sqlx db setup --database-url "postgres://postgres:password@localhost/examples"
+          cargo run --example postgres --features postgres
