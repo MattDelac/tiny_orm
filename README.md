@@ -3,6 +3,7 @@
 # Tiny ORM
 
 A minimal ORM for CRUD operations. Built on top of SQLx and with its QueryBuilder. Support Sqlite, Postgres and MySQL right off the bat. It has smart defaults and is also flexible.
+
 This library is the one I wished I had when I built a project in Rust in production and did not want a heavy ORM.
 
 ## Principles & advantages of TinyORM
@@ -14,10 +15,12 @@ The goals of this library are
 
 Why TinyORM over another one?
 - All the queries are built with the QueryBuilder
+
 -- All the inputs are passed as database arguments
 -- All the queries are compatible with Sqlite, Postgres and MySQL
 
 - Minimal set of dependencies (fast compile time)
+
 -- [SQLx](https://github.com/launchbadge/sqlx)
 -- Standard libraries for a proc macro (syn, etc.)
 -- [convert_case](https://github.com/rutrum/convert-case)
