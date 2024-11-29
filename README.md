@@ -31,7 +31,7 @@ tiny-orm = {version = "0.1.0", features = ["postgres"] }
 ```
 
 ## License
-This project is licensed under [MIT/Apache-2.0/etc.] - see the [LICENSE](LICENSE) file for details.
+This project is licensed under [MIT] - see the [LICENSE](LICENSE) file for details.
 
 ## Usage
 ### Basic
