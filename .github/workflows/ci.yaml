@@ -61,6 +61,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+      - name: Install SQLX CLI
+        run: cargo install sqlx-cli
       - name: Run tests on sqlite
         run: |
           cd examples/sqlite
