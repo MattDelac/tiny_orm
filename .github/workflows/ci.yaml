@@ -46,6 +46,7 @@ jobs:
       mysql:
         image: mysql:9
         env:
+          MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: examples
           MYSQL_USER: user
           MYSQL_PASSWORD: password
@@ -60,6 +61,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+      - name: Install SQLX CLI
+        run: cargo install sqlx-cli
       - name: Run tests on sqlite
         run: |
           cd examples/sqlite

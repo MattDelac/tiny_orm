@@ -27,7 +27,7 @@ Why TinyORM over another one?
 Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-sqlx-tiny-orm = {version = "0.1.0", features = ["postgres"] }
+tiny-orm = {version = "0.1.0", features = ["postgres"] }
 ```
 
 ## License
