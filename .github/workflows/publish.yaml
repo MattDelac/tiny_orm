@@ -14,6 +14,6 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Publish to crates.io
-        run: cargo publish
+        run: cargo publish --features sqlite
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
