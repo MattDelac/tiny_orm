@@ -27,7 +27,7 @@ Why TinyORM over another one?
 Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-tiny-orm = {version = "0.1.0", features = ["postgres"] }
+tiny-orm = {version = "0.1.1", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
 ## License
@@ -113,10 +113,6 @@ impl NewTodos {
 #### At the field level
 - **primary_key**: The field that would be used as a primary key for the queries. For some methods the primary key is mandatory (eg: `get_by_id()`)
 Default is any field named `id`.
-- **created_at**: The field that would be used as the created_at column for the queries.
-Default is any field named `created_at`.
-- **updated_at**: The field that would be used as the updated_at column for the queries.
-Default is any field named `updated_at`.
 
 Example
 ```rust
@@ -124,10 +120,6 @@ Example
 struct Todos {
     #[tiny_orm(primary_key)]
     custom_pk: Uuid,
-    #[tiny_orm(created_at)]
-    inserted_at: DateTime<Utc>,
-    #[tiny_orm(updated_at)]
-    modified_at: DateTime<Utc>,
     description: String,
     done: bool
 }
