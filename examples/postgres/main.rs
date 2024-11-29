@@ -11,9 +11,9 @@ use uuid::Uuid;
 struct Todos {
     // Table name would automatically be `todos`. Could be override with `#[tiny_orm(table_name = "xxx")]`
     #[tiny_orm(primary_key)]
-    pub id: Uuid, // Or needs to use `#[tiny_orn(primary_key)]`
-    pub created_at: DateTime<Utc>, // Or can use `#[tiny_orn(created_at)]`
-    pub updated_at: DateTime<Utc>, // Or can use `#[tiny_orn(updated_at)]`
+    pub id: Uuid, // Or use `#[tiny_orn(primary_key)]` to tell which field to use
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub description: String,
     pub done: bool,
 }

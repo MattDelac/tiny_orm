@@ -270,14 +270,6 @@ mod tests {
                 table_name: TableName::new("contact".to_string()),
                 return_object: format_ident!("Self"),
                 primary_key: Some(Column::new("id".to_string(), parse_quote!(i64))),
-                created_at: Some(Column::new(
-                    "created_at".to_string(),
-                    parse_quote!(DateTime<Utc>),
-                )),
-                updated_at: Some(Column::new(
-                    "updated_at".to_string(),
-                    parse_quote!(DateTime<Utc>),
-                )),
                 field_names: vec![
                     "id".to_string(),
                     "created_at".to_string(),
@@ -449,8 +441,6 @@ mod tests {
                 table_name: TableName::new("contact".to_string()),
                 return_object: format_ident!("Contact"),
                 primary_key: None,
-                created_at: None,
-                updated_at: None,
                 field_names: vec![
                     "first_name".to_string(),
                     "last_name".to_string(),
@@ -492,8 +482,6 @@ mod tests {
                 table_name: TableName::new("contact".to_string()),
                 return_object: format_ident!("Contact"),
                 primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
-                created_at: None,
-                updated_at: None,
                 field_names: vec!["custom_id".to_string(), "first_name".to_string()],
                 operations: vec![Operation::Update],
             };

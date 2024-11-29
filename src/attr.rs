@@ -82,8 +82,6 @@ impl fmt::Display for TableName {
 
 pub type StructName = Ident;
 pub type PrimaryKey = Column;
-pub type CreatedAt = Column;
-pub type UpdatedAt = Column;
 pub type ReturnObject = Ident;
 pub type FieldNames = Vec<String>;
 pub type Operations = Vec<Operation>;
@@ -94,8 +92,6 @@ pub struct Attr {
     pub table_name: TableName,
     pub return_object: ReturnObject,
     pub primary_key: Option<PrimaryKey>,
-    pub created_at: Option<CreatedAt>,
-    pub updated_at: Option<UpdatedAt>,
     pub field_names: FieldNames,
     pub operations: Operations,
 }
@@ -105,8 +101,7 @@ impl Attr {
         let struct_name = input.ident;
         let (table_name, return_object, operations) =
             Parser::parse_struct_macro_arguments(&struct_name, &input.attrs);
-        let (primary_key, created_at, updated_at, field_names) =
-            Parser::parse_fields_macro_arguments(input.data);
+        let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
 
         Attr {
             struct_name,
@@ -114,8 +109,6 @@ impl Attr {
             return_object,
             primary_key,
             field_names,
-            created_at,
-            updated_at,
             operations,
         }
     }
@@ -217,17 +210,8 @@ impl Parser {
         (table_name, return_object, operations)
     }
 
-    fn parse_fields_macro_arguments(
-        data: Data,
-    ) -> (
-        Option<PrimaryKey>,
-        Option<CreatedAt>,
-        Option<UpdatedAt>,
-        FieldNames,
-    ) {
+    fn parse_fields_macro_arguments(data: Data) -> (Option<PrimaryKey>, FieldNames) {
         let mut primary_key: Option<PrimaryKey> = None;
-        let mut created_at: Option<CreatedAt> = None;
-        let mut updated_at: Option<UpdatedAt> = None;
         let mut field_names = Vec::new();
 
         match data {
@@ -246,12 +230,6 @@ impl Parser {
                                     if meta.path.is_ident("primary_key") {
                                         primary_key =
                                             Some(Column::new(field_name.clone(), field.ty.clone()));
-                                    } else if meta.path.is_ident("created_at") {
-                                        created_at =
-                                            Some(Column::new(field_name.clone(), field.ty.clone()));
-                                    } else if meta.path.is_ident("updated_at") {
-                                        updated_at =
-                                            Some(Column::new(field_name.clone(), field.ty.clone()));
                                     }
                                     Ok(())
                                 })
@@ -262,10 +240,6 @@ impl Parser {
                         // Default fallbacks
                         if field_name == "id" && primary_key.is_none() {
                             primary_key = Some(Column::new(field_name.clone(), field.ty.clone()));
-                        } else if field_name == "created_at" && created_at.is_none() {
-                            created_at = Some(Column::new(field_name.clone(), field.ty.clone()));
-                        } else if field_name == "updated_at" && updated_at.is_none() {
-                            updated_at = Some(Column::new(field_name.clone(), field.ty.clone()));
                         }
 
                         field_names.push(field_name);
@@ -275,7 +249,7 @@ impl Parser {
             },
             _ => panic!("Only structs are supported"),
         };
-        (primary_key, created_at, updated_at, field_names)
+        (primary_key, field_names)
     }
 
     fn get_operations(
@@ -463,25 +437,10 @@ mod tests {
                 }
             };
 
-            let (primary_key, created_at, updated_at, field_names) =
-                Parser::parse_fields_macro_arguments(input.data);
+            let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
             assert_eq!(
                 primary_key,
                 Some(Column::new("id".to_string(), parse_quote!(i64)))
-            );
-            assert_eq!(
-                created_at,
-                Some(Column::new(
-                    "created_at".to_string(),
-                    parse_quote!(DateTime<Utc>)
-                ))
-            );
-            assert_eq!(
-                updated_at,
-                Some(Column::new(
-                    "updated_at".to_string(),
-                    parse_quote!(DateTime<Utc>)
-                ))
             );
             assert_eq!(
                 field_names,
@@ -502,11 +461,8 @@ mod tests {
                 }
             };
 
-            let (primary_key, created_at, updated_at, field_names) =
-                Parser::parse_fields_macro_arguments(input.data);
+            let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
             assert_eq!(primary_key, None);
-            assert_eq!(created_at, None);
-            assert_eq!(updated_at, None);
             assert_eq!(field_names, vec!["last_name".to_string()]);
         }
 
@@ -516,33 +472,16 @@ mod tests {
                 struct Contact {
                     #[tiny_orm(primary_key)]
                     custom_key: u32,
-                    #[tiny_orm(created_at)]
                     inserted_at: DateTime<Utc>,
-                    #[tiny_orm(updated_at)]
                     something_at: DateTime<Utc>,
                     last_name: String,
                 }
             };
 
-            let (primary_key, created_at, updated_at, field_names) =
-                Parser::parse_fields_macro_arguments(input.data);
+            let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
             assert_eq!(
                 primary_key,
                 Some(Column::new("custom_key".to_string(), parse_quote!(u32)))
-            );
-            assert_eq!(
-                created_at,
-                Some(Column::new(
-                    "inserted_at".to_string(),
-                    parse_quote!(DateTime<Utc>)
-                ))
-            );
-            assert_eq!(
-                updated_at,
-                Some(Column::new(
-                    "something_at".to_string(),
-                    parse_quote!(DateTime<Utc>)
-                ))
             );
             assert_eq!(
                 field_names,
@@ -561,9 +500,7 @@ mod tests {
                 struct Contact {
                     #[tiny_orm(primary_key)]
                     custom_key: u32,
-                    #[tiny_orm(created_at)]
                     inserted_at: DateTime<Utc>,
-                    #[tiny_orm(updated_at)]
                     something_at: DateTime<Utc>,
                     id: u32,
                     created_at: DateTime<Utc>,
@@ -572,25 +509,10 @@ mod tests {
                 }
             };
 
-            let (primary_key, created_at, updated_at, field_names) =
-                Parser::parse_fields_macro_arguments(input.data);
+            let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
             assert_eq!(
                 primary_key,
                 Some(Column::new("custom_key".to_string(), parse_quote!(u32)))
-            );
-            assert_eq!(
-                created_at,
-                Some(Column::new(
-                    "inserted_at".to_string(),
-                    parse_quote!(DateTime<Utc>)
-                ))
-            );
-            assert_eq!(
-                updated_at,
-                Some(Column::new(
-                    "something_at".to_string(),
-                    parse_quote!(DateTime<Utc>)
-                ))
             );
             assert_eq!(
                 field_names,
@@ -634,14 +556,6 @@ mod tests {
                     table_name: TableName::new("contact".to_string()),
                     return_object: format_ident!("Self"),
                     primary_key: Some(Column::new("id".to_string(), parse_quote!(i64))),
-                    created_at: Some(Column::new(
-                        "created_at".to_string(),
-                        parse_quote!(DateTime<Utc>)
-                    )),
-                    updated_at: Some(Column::new(
-                        "updated_at".to_string(),
-                        parse_quote!(DateTime<Utc>)
-                    )),
                     field_names: vec![
                         "id".to_string(),
                         "created_at".to_string(),
@@ -660,9 +574,7 @@ mod tests {
                 struct Contact {
                     #[tiny_orm(primary_key)]
                     custom_pk: i64,
-                    #[tiny_orm(created_at)]
                     custom_created_at: DateTime<Utc>,
-                    #[tiny_orm(updated_at)]
                     custom_updated_at: DateTime<Utc>,
                     last_name: String,
                 }
@@ -676,14 +588,6 @@ mod tests {
                     table_name: TableName::new("specific_table".to_string()),
                     return_object: format_ident!("AnotherObject"),
                     primary_key: Some(Column::new("custom_pk".to_string(), parse_quote!(i64))),
-                    created_at: Some(Column::new(
-                        "custom_created_at".to_string(),
-                        parse_quote!(DateTime<Utc>)
-                    )),
-                    updated_at: Some(Column::new(
-                        "custom_updated_at".to_string(),
-                        parse_quote!(DateTime<Utc>)
-                    )),
                     field_names: vec![
                         "custom_pk".to_string(),
                         "custom_created_at".to_string(),
