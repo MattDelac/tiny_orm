@@ -2,7 +2,7 @@ use sqlx::{
     types::chrono::{DateTime, Utc},
     FromRow, Row, SqlitePool,
 };
-use sqlx_tiny_orm::TinyORM;
+use tiny_orm::TinyORM;
 
 #[derive(Debug, FromRow, TinyORM, Clone)]
 struct Todos {

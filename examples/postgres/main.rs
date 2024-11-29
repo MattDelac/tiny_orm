@@ -2,7 +2,7 @@ use sqlx::{
     types::chrono::{DateTime, Utc},
     FromRow, PgPool,
 };
-use sqlx_tiny_orm::TinyORM;
+use tiny_orm::TinyORM;
 use uuid::Uuid;
 
 #[allow(unused_variables, dead_code)]
