@@ -1408,25 +1408,8 @@ dependencies = [
  "sqlx",
  "sqlx-tiny-orm",
  "syn",
-]
-
-[[package]]
-name = "sqlx-tiny-orm-example-postgres-real-life"
-version = "0.1.0"
-dependencies = [
- "sqlx",
- "sqlx-tiny-orm",
  "tokio",
  "uuid",
-]
-
-[[package]]
-name = "sqlx-tiny-orm-example-sqlite"
-version = "0.1.0"
-dependencies = [
- "sqlx",
- "sqlx-tiny-orm",
- "tokio",
 ]
 
 [[package]]

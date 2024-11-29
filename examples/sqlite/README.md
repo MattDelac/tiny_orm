@@ -1,13 +1,9 @@
 # TODOs Example
 
-## Setup
-
-```
-sqlx db reset --database-url sqlite:simple.db
-```
-
 ## Usage
 
-```
-cargo run
+```sh
+cd examples/sqlite
+sqlx db setup --database-url sqlite:simple.db
+cargo run --example sqlite --features sqlite
 ```
