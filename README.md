@@ -1,11 +1,10 @@
 # Tiny ORM
 
-A minimal ORM for CRUD operations. Built on top of SQLx and with its QueryBuilder.
-Support Sqlite, Postgres and MySQL right off the bat.
-It has smart defaults but is also flexible. This library is the one I wished I had when I built a project in Rust in production and did not want to an heavy ORM.
+A minimal ORM for CRUD operations. Built on top of SQLx and with its QueryBuilder. Support Sqlite, Postgres and MySQL right off the bat. It has smart defaults and is also flexible.
+This library is the one I wished I had when I built a project in Rust in production and did not want a heavy ORM.
 
 ## Principles & advantages of TinyORM
-The goal of this library is
+The goals of this library are
 - To have the least amount of dependencies
 - Tackle all the boilerplate of the CRUD operations
 - Add no complexity by default
@@ -18,7 +17,7 @@ Why TinyORM over another one?
 
 - Minimal set of dependencies (fast compile time)
 -- [SQLx](https://github.com/launchbadge/sqlx)
--- Standards libraries for a proc macro (syn, etc.)
+-- Standard libraries for a proc macro (syn, etc.)
 -- [convert_case](https://github.com/rutrum/convert-case)
 
 - Intuitive with smart defaults and flexible
@@ -61,11 +60,11 @@ impl Todos {
     pub fn delete(&self) -> sqlx::Result<()> {
         // Delete the record in the database
     }
-    pub fn create(&self) -> sqlx::Result<Todos> {
+    pub fn create(&self) -> sqlx::Result<Self> {
         // Create the Todo object as a record in
         // the database and returns the created record.
     }
-    pub fn update(&self) -> sqlx::Result<Todos> {
+    pub fn update(&self) -> sqlx::Result<Self> {
         // Update the record in the database with the values
         // currently part of the Todos object
     }
@@ -80,7 +79,7 @@ TinyORM comes with a few options to give flexibility to the user
 
 #### At the Struct level
 - **table_name**: The name of the table in the database.
-Default being a lower_case version of the Struct name. So `MyStruct` would have `my_struct` has a default `table_name`.
+Default being a lower_case version of the Struct name. So `MyStruct` would have `my_struct` as a default `table_name`.
 - **only**: The methods that will only be available to that struct. Multiple values are comma separated
 Default would be the equivalent of `only = "created,get,list,update,delete"`
 - **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated
@@ -93,6 +92,16 @@ _Note: `only` and `exclude` cannot be used together._
 Example
 ```rust
 #[derive(Debug, FromRow, TinyORM, Clone)]
+#[tiny_orm(exclude = "create")]
+struct Todos {
+    id: i32,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    description: String,
+    done: bool,
+}
+
+#[derive(Debug, FromRow, TinyORM, Clone)]
 #[tiny_orm(table_name = "todos", return_object = "Todos", only = "create")]
 struct NewTodos {
     description: String,
@@ -104,8 +113,9 @@ Thus it would generate the following
 ```rust
 impl NewTodos {
     pub fn create(&self) -> sqlx::Result<Todos> {
-        // Create the Todo object as a record in
-        // the database and returns the created record.
+        // Use the NewTodo object to create a record
+        // in the database and return the created
+        // record which would map to the Todos struct.
     }
 }
 ```
@@ -127,7 +137,7 @@ struct Todos {
 The above takes the assumption that some columns can be nullable and others are auto generated (eg an ID column that would be auto increment).
 Thus it would generate the following
 ```rust
-impl NewTodos {
+impl Todos {
     pub fn create(&self) -> sqlx::Result<Todos> {
         // Create the Todo object as a record in
         // the database and returns the created record.
@@ -138,13 +148,13 @@ impl NewTodos {
 ## Roadmap
 Goal of TinyORM is to stay tiny. That being said there are still a few things I would like to have
 - [X] Get all the CRUD methods.
-- [X] Being able to have custom fields like a custom primary_key or table_name.
-- [X] Being able to choose the operations available on the method through an opt-in strategy or an exclusion one.
-- [X] Being able to return a custom object type for more complex setup.
+- [X] Ability to have custom fields like a custom primary_key or table_name.
+- [X] Ability to choose the operations available on the method through an opt-in strategy or an exclusion one.
+- [X] Ability to return a custom object type for more complex setup.
 - [ ] Auto generate the `created_at` / `updated_at` column based on some default value when needed.
 -- For example, being able to have `Utc.now()` on the `update()` method for the `updated_at` if the field is of type `DateTime<Utc>`
 - [ ] Ability to skip some fields if not set (especially for the create and update methods).
--- For example if the field is of type `SetOption<DateTime<Utc>>` then it would only put the field as part of the query if the value if of `Set(value)`. It would skip it if it's of value `NotSet`.
+-- For example if the field is of type `SetOption<DateTime<Utc>>` then it would only put the field as part of the query if the value is `Set(value)`. It would skip it if it has the value `NotSet`.
 
 ## Release
 One PR with the following
