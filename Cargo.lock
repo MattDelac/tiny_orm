@@ -1399,20 +1399,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sqlx-tiny-orm"
-version = "0.1.0"
-dependencies = [
- "convert_case",
- "proc-macro2",
- "quote",
- "sqlx",
- "sqlx-tiny-orm",
- "syn",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "stringprep"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1471,6 +1457,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tiny-orm"
+version = "0.1.0"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "sqlx",
+ "syn",
+ "tiny-orm",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
