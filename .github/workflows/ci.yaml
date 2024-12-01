@@ -66,5 +66,7 @@ jobs:
       - name: Run tests on sqlite
         run: cargo run --example sqlite --features sqlite
 
-      - name: Run tests on postgres
+      - name: Run tests on Postgres
         run: cargo run --example postgres --features postgres
+      - name: Run tests on Mysql
+        run: cargo run --example mysql --features mysql

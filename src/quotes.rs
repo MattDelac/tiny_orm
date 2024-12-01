@@ -2,7 +2,7 @@ use quote::{format_ident, quote};
 
 use crate::{
     attr::{Attr, PrimaryKey, ReturnObject},
-    database,
+    database::{self, DbType},
 };
 
 #[derive(Debug, Clone)]
@@ -39,6 +39,10 @@ impl ReturnType {
     }
 
     fn returning_statement(self) -> proc_macro2::TokenStream {
+        // MySQL does not support the RETURNING statement
+        if database::db_type() == DbType::MySQL {
+            return quote! {};
+        }
         match self {
             ReturnType::PrimaryKey(primary_key) => {
                 let pk_name = primary_key.name;
@@ -57,29 +61,36 @@ impl ReturnType {
     }
 
     fn query_builder_execution(self) -> proc_macro2::TokenStream {
-        match self {
-            ReturnType::PrimaryKey(_) => quote! {
+        match (database::db_type(), self) {
+            (DbType::MySQL, ReturnType::PrimaryKey(_)) => quote! {
+                // TODO: Support a different strategy if the PK is not autoincrement (eg: UUID)
+                qb.build()
+                .execute(db)
+                .await
+                .map(|result| result.last_insert_id() as _)
+            },
+            (_, ReturnType::PrimaryKey(_)) => quote! {
                 qb.build()
                 .fetch_one(db)
                 .await
                 .map(|row| row.get(0))
             },
-            ReturnType::EntireRow(_) => quote! {
+            (_, ReturnType::EntireRow(_)) => quote! {
                 qb.build_query_as()
                 .fetch_one(db)
                 .await
             },
-            ReturnType::OptionalRow(_) => quote! {
+            (_, ReturnType::OptionalRow(_)) => quote! {
                 qb.build_query_as()
                 .fetch_optional(db)
                 .await
             },
-            ReturnType::MultipleRows(_) => quote! {
+            (_, ReturnType::MultipleRows(_)) => quote! {
                 qb.build_query_as()
                 .fetch_all(db)
                 .await
             },
-            ReturnType::None => quote! {
+            (_, ReturnType::None) => quote! {
                 qb.build()
                 .execute(db)
                 .await
@@ -131,12 +142,16 @@ pub fn list_all_fn(attr: &Attr) -> proc_macro2::TokenStream {
 }
 
 pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
-    let db_type_ident = database::db_type().to_ident();
+    let db_type = database::db_type();
+    let db_type_ident = db_type.clone().to_ident();
     let table_name = attr.table_name.clone().to_string();
 
-    let return_type = match attr.primary_key.clone() {
-        None => ReturnType::EntireRow(attr.return_object.clone()),
-        Some(primary_key) => ReturnType::PrimaryKey(primary_key),
+    let mysql_specific_error = r#"MySQL does not support the RETURNING statement
+    Thus it's not possible to create a record without a known primary_key column with TinyORM"#;
+    let return_type = match (db_type.clone(), attr.primary_key.clone()) {
+        (DbType::MySQL, None) => panic!("{mysql_specific_error}"),
+        (_, None) => ReturnType::EntireRow(attr.return_object.clone()),
+        (_, Some(primary_key)) => ReturnType::PrimaryKey(primary_key),
     };
 
     let function_output = return_type.clone().function_output();
@@ -173,7 +188,16 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
 
 pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
-    let return_type = ReturnType::EntireRow(attr.return_object.clone());
+
+    let return_type = if database::db_type() == DbType::MySQL {
+        ReturnType::PrimaryKey(
+            attr.primary_key
+                .clone()
+                .expect("No primary key field found"),
+        )
+    } else {
+        ReturnType::EntireRow(attr.return_object.clone())
+    };
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.clone().query_builder_execution();
     let returning_statement = return_type.returning_statement();

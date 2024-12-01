@@ -1,7 +1,8 @@
 test:
 	cargo test --lib --tests --features sqlite
-	cargo run --example postgres --features postgres
 	cargo run --example sqlite --features sqlite
+	cargo run --example postgres --features postgres
+	cargo run --example mysql --features mysql
 
 release:
 	@if [ -z "$(VERSION)" ]; then \
