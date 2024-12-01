@@ -1,4 +1,5 @@
 use sqlx::{
+    migrate::Migrator,
     types::chrono::{DateTime, Utc},
     FromRow, PgPool,
 };
@@ -81,9 +82,13 @@ impl From<Todos> for UpdateTodos {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let m = Migrator::new(std::path::Path::new("examples/postgres/migrations"))
+        .await
+        .unwrap();
     let pool = PgPool::connect("postgres://postgres:password@localhost/examples")
         .await
-        .expect("PostgresPool should be created");
+        .unwrap();
+    let _ = m.run(&pool).await.unwrap();
 
     let new_todo = NewTodos::new("My first item".to_string());
     let todo = new_todo

@@ -1,4 +1,5 @@
 use sqlx::{
+    migrate::Migrator,
     types::chrono::{DateTime, Utc},
     FromRow, Row, SqlitePool,
 };
@@ -15,9 +16,11 @@ struct Todos {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let pool = SqlitePool::connect("sqlite:simple.db")
+    let m = Migrator::new(std::path::Path::new("examples/sqlite/migrations"))
         .await
-        .expect("SqlitePool should be created");
+        .unwrap();
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    let _ = m.run(&pool).await.unwrap();
 
     let new_todo = Todos {
         id: 1,

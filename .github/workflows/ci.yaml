@@ -27,9 +27,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - name: Run tests
-        run: cargo test --lib --features sqlite
+        run: cargo test --lib --tests --features sqlite
 
-  integration-tests:
+  example-tests:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -63,16 +63,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
-      - name: Install SQLX CLI
-        run: cargo install sqlx-cli
       - name: Run tests on sqlite
-        run: |
-          cd examples/sqlite
-          sqlx db setup --database-url sqlite:simple.db
-          cargo run --example sqlite --features sqlite
+        run: cargo run --example sqlite --features sqlite
 
       - name: Run tests on postgres
-        run: |
-          cd examples/postgres
-          sqlx db setup --database-url "postgres://postgres:password@localhost/examples"
-          cargo run --example postgres --features postgres
+        run: cargo run --example postgres --features postgres

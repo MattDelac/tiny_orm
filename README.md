@@ -55,21 +55,21 @@ struct Todos {
 The code above would generate the following methods on the Todos object
 ```rust
 impl Todos {
-    pub fn get_by_id(id: &i32) -> sqlx::Result<Self> {
+    pub fn get_by_id(pool: &DbPool, id: &i32) -> sqlx::Result<Self> {
         // Get a specific record for a given ID
         // Use the `id` column by default
     }
-    pub fn list_all() -> sqlx::Result<Vec<Self>> {
+    pub fn list_all(pool: &DbPool) -> sqlx::Result<Vec<Self>> {
         // Get all the records
     }
-    pub fn delete(&self) -> sqlx::Result<()> {
+    pub fn delete(&self, pool: &DbPool) -> sqlx::Result<()> {
         // Delete the record in the database
     }
-    pub fn create(&self) -> sqlx::Result<Self> {
+    pub fn create(&self, pool: &DbPool) -> sqlx::Result<Self> {
         // Create the Todo object as a record in
         // the database and returns the created record.
     }
-    pub fn update(&self) -> sqlx::Result<Self> {
+    pub fn update(&self, pool: &DbPool) -> sqlx::Result<Self> {
         // Update the record in the database with the values
         // currently part of the Todos object
     }
@@ -117,7 +117,7 @@ The above takes the assumption that some columns can be nullable and others are 
 Thus it would generate the following
 ```rust
 impl NewTodos {
-    pub fn create(&self) -> sqlx::Result<Todos> {
+    pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todos> {
         // Use the NewTodo object to create a record
         // in the database and return the created
         // record which would map to the Todos struct.
@@ -143,7 +143,7 @@ The above takes the assumption that some columns can be nullable and others are 
 Thus it would generate the following
 ```rust
 impl Todos {
-    pub fn create(&self) -> sqlx::Result<Todos> {
+    pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todos> {
         // Create the Todo object as a record in
         // the database and returns the created record.
     }
