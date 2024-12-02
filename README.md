@@ -1,4 +1,4 @@
-[![ci](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml) | [![Publish](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml/badge.svg)](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml)
+![Crates.io License](https://img.shields.io/crates/l/tiny-orm)  [![ci](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml)  [![Publish](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml/badge.svg)](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml)  ![Crates.io Version](https://img.shields.io/crates/v/tiny-orm)
 
 # Tiny ORM
 
