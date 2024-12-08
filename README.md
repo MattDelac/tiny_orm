@@ -33,7 +33,7 @@ Why TinyORM over another one?
 Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-tiny-orm = {version = "0.1.3", features = ["postgres"] } # Choose between sqlite, mysql and postgres
+tiny-orm = {version = "0.1.4", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
 ## License
