@@ -26,8 +26,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
-      - name: Run tests
-        run: cargo test --lib --tests --features sqlite
+
+      - name: Run lib tests on sqlite
+        run: cargo test --lib --features sqlite
+
+      - name: Run lib tests on postgres
+        run: cargo test --lib --features postgres
+
+      - name: Run lib tests on mysql
+        run: cargo test --lib --features mysql
+
+      - name: Run the integration tests on Sqlite only
+        run: cargo test --tests --features sqlite
+
 
   example-tests:
     runs-on: ubuntu-latest
@@ -68,5 +79,6 @@ jobs:
 
       - name: Run tests on Postgres
         run: cargo run --example postgres --features postgres
+
       - name: Run tests on Mysql
         run: cargo run --example mysql --features mysql
