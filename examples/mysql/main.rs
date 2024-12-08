@@ -7,6 +7,7 @@ use tiny_orm::TinyORM;
 
 #[derive(Debug, FromRow, TinyORM, Clone)]
 struct Todos {
+    #[tiny_orm(primary_key(auto))]
     id: i64,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
