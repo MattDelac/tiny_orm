@@ -4,8 +4,8 @@ use convert_case::{Case, Casing};
 use proc_macro2::Span;
 use quote::format_ident;
 use syn::{
-    parse_str, punctuated::Punctuated, Attribute, Data, DeriveInput, Expr, ExprLit, Fields, Ident,
-    Lit, Meta, Token, Type,
+    parenthesized, parse_str, punctuated::Punctuated, token::Paren, Attribute, Data, DeriveInput,
+    Expr, ExprLit, Fields, Ident, Lit, Meta, Token, Type,
 };
 
 const NAME_MACRO_OPERATION_ARG: &str = "tiny_orm";
@@ -51,6 +51,7 @@ pub struct Column {
     pub name: String,
     pub ident: Ident,
     pub _type: Type,
+    pub auto_increment: bool,
 }
 impl Column {
     pub fn new(name: String, _type: Type) -> Self {
@@ -58,7 +59,11 @@ impl Column {
             name: name.clone(),
             ident: format_ident!("{}", name),
             _type,
+            auto_increment: false,
         }
+    }
+    pub fn set_auto_increment(&mut self) {
+        self.auto_increment = true;
     }
 }
 
@@ -228,8 +233,21 @@ impl Parser {
                             if attr.path().is_ident(NAME_MACRO_OPERATION_ARG) {
                                 attr.parse_nested_meta(|meta| {
                                     if meta.path.is_ident("primary_key") {
-                                        primary_key =
-                                            Some(Column::new(field_name.clone(), field.ty.clone()));
+                                        let mut column =
+                                            Column::new(field_name.clone(), field.ty.clone());
+
+                                        if meta.input.peek(Paren) {
+                                            let content;
+                                            parenthesized!(content in meta.input);
+
+                                            let ident: Option<Ident> = content.parse().ok();
+                                            if let Some(ident) = ident {
+                                                if ident == "auto" {
+                                                    column.set_auto_increment();
+                                                }
+                                            }
+                                        }
+                                        primary_key = Some(column);
                                     }
                                     Ok(())
                                 })
@@ -271,6 +289,20 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod generic {
+        use syn::parse_quote;
+
+        use super::Column;
+
+        #[test]
+        fn test_set_auto_increment() {
+            let mut column = Column::new("col_name".to_string(), parse_quote!(i32));
+            assert!(!column.auto_increment);
+            column.set_auto_increment();
+            assert!(column.auto_increment);
+        }
+    }
 
     mod operation_tests {
         use super::{Operation, Parser};
@@ -495,6 +527,24 @@ mod tests {
         }
 
         #[test]
+        fn test_parse_override_default_values_set_auto() {
+            let input: DeriveInput = parse_quote! {
+                struct Contact {
+                    #[tiny_orm(primary_key(auto))]
+                    custom_key: u32,
+                    inserted_at: DateTime<Utc>,
+                    something_at: DateTime<Utc>,
+                    last_name: String,
+                }
+            };
+
+            let (primary_key, _) = Parser::parse_fields_macro_arguments(input.data);
+            let mut pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            pk.set_auto_increment();
+            assert_eq!(primary_key, Some(pk));
+        }
+
+        #[test]
         fn test_parse_keep_override_even_when_default_values_present() {
             let input: DeriveInput = parse_quote! {
                 struct Contact {
@@ -526,6 +576,27 @@ mod tests {
                     "last_name".to_string()
                 ]
             );
+        }
+
+        #[test]
+        fn test_parse_keep_override_when_default_present_and_auto_is_set() {
+            let input: DeriveInput = parse_quote! {
+                struct Contact {
+                    #[tiny_orm(primary_key(auto))]
+                    custom_key: u32,
+                    inserted_at: DateTime<Utc>,
+                    something_at: DateTime<Utc>,
+                    id: u32,
+                    created_at: DateTime<Utc>,
+                    updated_at: DateTime<Utc>,
+                    last_name: String,
+                }
+            };
+
+            let (primary_key, _) = Parser::parse_fields_macro_arguments(input.data);
+            let mut pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            pk.set_auto_increment();
+            assert_eq!(primary_key, Some(pk));
         }
     }
 
