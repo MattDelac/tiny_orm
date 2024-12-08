@@ -71,7 +71,7 @@ impl Todos {
         // Create the Todo object as a record in
         // the database and returns the primary key of the record created.
     }
-    pub fn update(&self, pool: &DbPool) -> sqlx::Result<Self> {
+    pub fn update(&self, pool: &DbPool) -> sqlx::Result<()> {
         // Update the record in the database with the values
         // currently part of the Todos object
     }
@@ -99,7 +99,7 @@ _Note: `only` and `exclude` cannot be used together._
 Example
 ```rust
 #[derive(Debug, FromRow, TinyORM, Clone)]
-#[tiny_orm(exclude = "create")]
+#[tiny_orm(exclude = "create,update")]
 struct Todos {
     id: i32,
     created_at: DateTime<Utc>,
@@ -112,6 +112,12 @@ struct Todos {
 #[tiny_orm(table_name = "todos", return_object = "Todos", only = "create")]
 struct NewTodos {
     description: String,
+}
+
+#[derive(Debug, FromRow, TinyORM, Clone)]
+#[tiny_orm(table_name = "todos", return_object = "Todos", only = "update")]
+struct UpdateTodos {
+    id: i32,
     done: bool
 }
 ```
@@ -126,6 +132,18 @@ impl NewTodos {
         // This would not be supported for MySQL since
         // there is a need to know the primary key (auto increment or not)
         // to either return the value or use `last_insert_id()`
+    }
+}
+
+impl UpdateTodos {
+    pub fn update(&self, pool: &DbPool) -> sqlx::Result<Todos> {
+        // Update the Todo object with partial information based
+        // on the id (default primary_key).
+        // Because `return_type` is specified, it will return the whole record in the database.
+        // If `return_type` was not specified, it would simply return nothing `()`.
+
+        // For MySQL, it would always return nothing `()` as it
+        // cannot return a record after an update.
     }
 }
 ```
