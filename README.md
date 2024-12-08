@@ -18,15 +18,13 @@ The goals of this library are
 - Can fit real world problems
 
 Why TinyORM over another one?
-- All the queries are built with the QueryBuilder
-
--- All the inputs are passed as database arguments
+- All the queries are built with the QueryBuilder  
+-- All the inputs are passed as database arguments  
 -- All the queries are compatible with Sqlite, Postgres and MySQL
 
-- Minimal set of dependencies (fast compile time)
-
--- [SQLx](https://github.com/launchbadge/sqlx)
--- Standard libraries for a proc macro (syn, etc.)
+- Minimal set of dependencies (fast compile time)  
+-- [SQLx](https://github.com/launchbadge/sqlx)  
+-- Standard libraries for a proc macro (syn, etc.)  
 -- [convert_case](https://github.com/rutrum/convert-case)
 
 - Intuitive with smart defaults and flexible
@@ -176,9 +174,9 @@ Goal of TinyORM is to stay tiny. That being said there are still a few things I 
 - [X] Ability to choose the operations available on the method through an opt-in strategy or an exclusion one.
 - [X] Ability to return a custom object type for more complex setup.
 - [X] Support MySQL with non auto increment PK. Won't be able to use the `last_return_id()` function in the case (eg with UUID).
-- [ ] Auto generate the `created_at` / `updated_at` column based on some default value when needed.
+- [ ] Auto generate the `created_at` / `updated_at` column based on some default value when needed.  
 -- For example, being able to have `Utc.now()` on the `update()` method for the `updated_at` if the field is of type `DateTime<Utc>`
-- [ ] Ability to skip some fields if not set (especially for the create and update methods).
+- [ ] Ability to skip some fields if not set (especially for the create and update methods).  
 -- For example if the field is of type `SetOption<DateTime<Utc>>` then it would only put the field as part of the query if the value is `Set(value)`. It would skip it if it has the value `NotSet`.
 
 ## Release
