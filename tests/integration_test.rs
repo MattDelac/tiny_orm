@@ -61,7 +61,7 @@ async fn test_update(pool: SqlitePool) {
     let mut updated_item = inserted_item;
     updated_item.description = "New description".to_string();
     updated_item.done = true;
-    let _ = updated_item.update(&pool).await.unwrap();
+    updated_item.update(&pool).await.unwrap();
 
     let checked_item = Todos::get_by_id(&pool, updated_item.id)
         .await

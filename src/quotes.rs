@@ -215,17 +215,13 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
 pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
 
-    // FIXME: Should return () is the return_type is self otherwise the return_type
-    // Returning the return_type would not be supported by MySql
-    let return_type = if database::db_type() == DbType::MySQL {
-        ReturnType::PrimaryKey(
-            attr.primary_key
-                .clone()
-                .expect("No primary key field found"),
-        )
-    } else {
-        ReturnType::EntireRow(attr.return_object.clone())
+    let self_ident = format_ident!("Self");
+    let return_type = match (database::db_type(), &attr.return_object) {
+        (DbType::MySQL, _) => ReturnType::None, // MySQL is not capable to return the entire row.
+        (_, ident) if ident == &self_ident => ReturnType::None,
+        (_, _) => ReturnType::EntireRow(attr.return_object.clone()),
     };
+
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.clone().query_builder_execution();
     let returning_statement = return_type.returning_statement();
@@ -519,15 +515,13 @@ mod tests {
             assert_eq!(generated, expected);
         }
 
-        // FIXME: Should return () if the return_type is Self otherwise the return_type
-        #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_generate_update_method() {
             let db_ident = db_ident();
             let generated = clean_tokens(update_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn update(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<Self> {
+                pub async fn update(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<()> {
                     let mut qb = sqlx::QueryBuilder::new("UPDATE ");
                     qb.push("contact");
                     qb.push(" SET ");
@@ -563,11 +557,10 @@ mod tests {
                     qb.push(" = ");
                     qb.push_bind(&self.id);
 
-                    qb.push(" RETURNING * ");
-
-                    qb.build_query_as()
-                    .fetch_one(db)
+                    qb.build()
+                    .execute(db)
                     .await
+                    .map(|_|())
                 }
             });
 
@@ -666,7 +659,6 @@ mod tests {
             create_fn(&input);
         }
 
-        // FIXME: Should return () if the return_type is Self otherwise the return_type
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_custom_output_update() {
@@ -709,6 +701,52 @@ mod tests {
                     qb.build_query_as()
                     .fetch_one(db)
                     .await
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
+
+        #[cfg(feature = "mysql")]
+        #[test]
+        fn test_custom_output_update() {
+            use syn::parse_quote;
+            let input = Attr {
+                struct_name: format_ident!("UpdateContact"),
+                table_name: TableName::new("contact".to_string()),
+                return_object: format_ident!("Contact"),
+                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
+                field_names: vec!["custom_id".to_string(), "first_name".to_string()],
+                operations: vec![Operation::Update],
+            };
+
+            let generated = clean_tokens(update_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn update(&self, db: &sqlx::Pool<sqlx::MySql>) -> sqlx::Result<()> {
+                    let mut qb = sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET ");
+
+                    let mut first = true;
+
+                    if !first {
+                        qb.push(",");
+                    }
+                    qb.push("first_name");
+                    qb.push(" = ");
+                    qb.push_bind(&self.first_name);
+                    first = false;
+
+                    qb.push(" WHERE ");
+                    qb.push("custom_id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.custom_id);
+
+                    qb.build()
+                    .execute(db)
+                    .await
+                    .map(|_|())
                 }
             });
 
