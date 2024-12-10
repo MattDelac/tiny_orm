@@ -24,13 +24,12 @@ impl Todo {
 }
 
 #[derive(Debug, PartialEq, Table)]
-#[tiny_orm(table_name = "todo", only = "create", return_object = "Todo")]
-struct NewTodos {
+struct NewTodo {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     description: String,
 }
-impl NewTodos {
+impl NewTodo {
     fn new(description: String) -> Self {
         Self {
             created_at: Utc::now(),
@@ -43,7 +42,7 @@ impl NewTodos {
 #[sqlx::test(migrations = "examples/sqlite/migrations")]
 async fn test_insert_and_get_by_id(pool: SqlitePool) {
     let description = "My new item".to_string();
-    let new_item = NewTodos::new(description.clone());
+    let new_item = NewTodo::new(description.clone());
 
     let inserted_item = new_item.create(&pool).await.unwrap();
     assert!(inserted_item.id > -0);
@@ -61,7 +60,7 @@ async fn test_insert_and_get_by_id(pool: SqlitePool) {
 #[sqlx::test(migrations = "examples/sqlite/migrations")]
 async fn test_update(pool: SqlitePool) {
     let description = "My new item".to_string();
-    let new_item = NewTodos::new(description.clone());
+    let new_item = NewTodo::new(description.clone());
 
     let inserted_item = new_item.create(&pool).await.unwrap();
     assert_eq!(inserted_item.description, description);
@@ -82,15 +81,15 @@ async fn test_update(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "examples/sqlite/migrations")]
 async fn test_list_all(pool: SqlitePool) {
-    let _ = NewTodos::new("Item 1".to_string())
+    let _ = NewTodo::new("Item 1".to_string())
         .create(&pool)
         .await
         .unwrap();
-    let _ = NewTodos::new("Item 2".to_string())
+    let _ = NewTodo::new("Item 2".to_string())
         .create(&pool)
         .await
         .unwrap();
-    let _ = NewTodos::new("Item 3".to_string())
+    let _ = NewTodo::new("Item 3".to_string())
         .create(&pool)
         .await
         .unwrap();
@@ -112,7 +111,7 @@ async fn test_list_all(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "examples/sqlite/migrations")]
 async fn test_delete(pool: SqlitePool) {
-    let item = NewTodos::new("Item 1".to_string())
+    let item = NewTodo::new("Item 1".to_string())
         .create(&pool)
         .await
         .unwrap();
@@ -129,7 +128,7 @@ async fn test_delete(pool: SqlitePool) {
 async fn test_insert_get_with_a_transaction(pool: SqlitePool) {
     let mut tx = pool.begin().await.unwrap();
     let description = "My new item".to_string();
-    let new_item = NewTodos::new(description.clone());
+    let new_item = NewTodo::new(description.clone());
 
     let mut inserted_item = new_item.create(&mut *tx).await.unwrap();
     assert!(inserted_item.id > -0);

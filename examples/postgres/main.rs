@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 #[allow(unused_variables, dead_code)]
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(exclude = "create,update")]
 struct Todo {
     // Table name would automatically be `todo`. Could be override with `#[tiny_orm(table_name = "xxx")]`
     #[tiny_orm(primary_key)]
@@ -33,22 +32,21 @@ impl Todo {
 */
 
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
-struct NewTodos {
+struct NewTodo {
     description: String,
     done: bool,
 }
 /* Table would create the following method
-impl NewTodos {
+impl NewTodo {
     pub fn create(&self) -> sqlx::Result<Todo> {
         todo!("Create a record partially in the database and return it");
     }
 }
 */
 
-impl NewTodos {
+impl NewTodo {
     pub fn new(description: String) -> Self {
-        NewTodos {
+        NewTodo {
             description,
             done: false,
         }
@@ -56,23 +54,22 @@ impl NewTodos {
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
-struct UpdateTodos {
+struct UpdateTodo {
     id: Uuid,
     description: String,
     done: bool,
 }
 /* Table would create the following method
-impl UpdateTodos {
+impl UpdateTodo {
     pub fn update(&self) -> sqlx::Result<Todo> {
         todo!("Update a record partially in the database and return it");
     }
 }
 */
 
-impl From<Todo> for UpdateTodos {
-    fn from(todo: Todo) -> UpdateTodos {
-        UpdateTodos {
+impl From<Todo> for UpdateTodo {
+    fn from(todo: Todo) -> UpdateTodo {
+        UpdateTodo {
             id: todo.id,
             description: todo.description,
             done: todo.done,
@@ -90,7 +87,7 @@ async fn main() {
         .unwrap();
     let _ = m.run(&pool).await.unwrap();
 
-    let new_todo = NewTodos::new("My first item".to_string());
+    let new_todo = NewTodo::new("My first item".to_string());
     let todo = new_todo
         .create(&pool)
         .await
@@ -103,7 +100,7 @@ async fn main() {
         None => println!("Todo item does not exist for the id {0}", todo.id),
     }
 
-    let mut updated_todo: UpdateTodos = first_todo.unwrap().into();
+    let mut updated_todo: UpdateTodo = first_todo.unwrap().into();
     updated_todo.done = true;
     let _updated_item = updated_todo
         .update(&pool)

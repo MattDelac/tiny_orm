@@ -24,7 +24,6 @@ Why TinyORM over another one?
 
 - Minimal set of dependencies (fast compile time)  
 -- [SQLx](https://github.com/launchbadge/sqlx)  
--- Standard libraries for a proc macro (syn, etc.)  
 -- [convert_case](https://github.com/rutrum/convert-case)
 
 - Intuitive with smart defaults and flexible
@@ -45,6 +44,7 @@ This project is licensed under [MIT] - see the [LICENSE](LICENSE) file for detai
 use sqlx_tiny_orm::Table;
 
 #[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(all)]
 struct Todo {
     id: i32,
     created_at: DateTime<Utc>,
@@ -85,21 +85,31 @@ More examples can be found in the [examples](./examples) directory.
 The Table macro comes with a few options to give flexibility to the user
 
 #### At the Struct level
-- **table_name**: The name of the table in the database.
+- **table_name**: The name of the table in the database.  
 Default being a lower_case version of the Struct name. So `MyStruct` would have `my_struct` as a default `table_name`.
-- **only**: The methods that will only be available to that struct. Multiple values are comma separated
-Default would be the equivalent of `only = "created,get,list,update,delete"`
-- **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated
+- **only**: The methods that will only be available to that struct. Multiple values are comma separated.  
+Default is dependent on the struct name (see below).
+- **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated  
 Default would be nothing.
-- **return_object**: A custom object that would be returned instead of `Self`. Useful when creating or updating records with partial information.
+- **all**: All the methods will be available to the struct. This will override the default values when none are provided.  
+Default none.
+- **return_object**: A custom object that would be returned instead of `Self`. Useful when creating or updating records with partial information.  
 Default is `Self` which corresponds to the current Strut.
 
 _Note: `only` and `exclude` cannot be used together._
 
+By convention, if a struct name
+- Starts with `New` then it will automatically use the following arguments  
+`#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutNewAsPrefix", only = "create")]`
+- Starts with `Update` then it will automatically use the following arguments  
+`#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutUpdateAsPrefix", only = "update")]`
+- Everything else would be the equivalent of using the following  
+`#[tiny_orm(table_name = "table_name", return_object = "Self", exclude = "create,update")]`
+
 Example
 ```rust
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(exclude = "create,update")]
+// #[tiny_orm(table_name = "todo", return_object = "Self", exclude = "create,update")]
 struct Todo {
     id: i32,
     created_at: DateTime<Utc>,
@@ -109,14 +119,16 @@ struct Todo {
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
-struct NewTodos {
+// Because the struct name starts with "New", it would automatically use the following options
+// #[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
+struct NewTodo {
     description: String,
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
-struct UpdateTodos {
+// Because the struct name starts with "Update", it would automatically use the following options
+// #[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
+struct UpdateTodo {
     id: i32,
     done: bool
 }
@@ -124,7 +136,7 @@ struct UpdateTodos {
 The above takes the assumption that some columns can be nullable and others are auto generated (eg an ID column that would be auto increment).
 Thus it would generate the following
 ```rust
-impl NewTodos {
+impl NewTodo {
     pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todo> {
         // Use the NewTodo object to create a record
         // in the database and return the record created.
@@ -135,7 +147,7 @@ impl NewTodos {
     }
 }
 
-impl UpdateTodos {
+impl UpdateTodo {
     pub fn update(&self, pool: &DbPool) -> sqlx::Result<Todo> {
         // Update the Todo object with partial information based
         // on the id (default primary_key).

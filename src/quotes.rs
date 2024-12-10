@@ -117,10 +117,10 @@ impl ReturnType {
 
 pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
-    let return_type = ReturnType::OptionalRow(attr.clone().return_object);
+    let return_type = ReturnType::OptionalRow(attr.clone().parsed_struct.return_object);
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.query_builder_execution();
-    let table_name = attr.table_name.clone().to_string();
+    let table_name = attr.parsed_struct.table_name.clone().to_string();
 
     let (pk_name, pk_type) = match attr.primary_key {
         Some(ref pk) => (&pk.name, &pk._type),
@@ -145,10 +145,10 @@ pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
 
 pub fn list_all_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
-    let return_type = ReturnType::MultipleRows(attr.clone().return_object);
+    let return_type = ReturnType::MultipleRows(attr.clone().parsed_struct.return_object);
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.query_builder_execution();
-    let table_name = attr.table_name.clone().to_string();
+    let table_name = attr.parsed_struct.table_name.clone().to_string();
 
     quote! {
         pub async fn list_all<'e, E>(db: E) -> #function_output
@@ -165,14 +165,14 @@ pub fn list_all_fn(attr: &Attr) -> proc_macro2::TokenStream {
 pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type = database::db_type();
     let db_type_ident = db_type.clone().to_ident();
-    let table_name = attr.table_name.clone().to_string();
+    let table_name = attr.parsed_struct.table_name.clone().to_string();
 
     let mysql_specific_error = r#"MySQL does not support the `RETURNING *` statement
     Thus it's not possible to create a record without a known primary_key column with the `Table` macro.
     If an auto increment column is used, set a dummy value and it will be ignored."#;
     let return_type = match (&db_type, attr.primary_key.clone()) {
         (&DbType::MySQL, None) => panic!("{mysql_specific_error}"),
-        (_, None) => ReturnType::EntireRow(attr.return_object.clone()),
+        (_, None) => ReturnType::EntireRow(attr.parsed_struct.return_object.clone()),
         (_, Some(primary_key)) => ReturnType::PrimaryKey(primary_key),
     };
 
@@ -225,17 +225,17 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
 
     let self_ident = format_ident!("Self");
-    let return_type = match (database::db_type(), &attr.return_object) {
+    let return_type = match (database::db_type(), &attr.parsed_struct.return_object) {
         (DbType::MySQL, _) => ReturnType::None, // MySQL is not capable to return the entire row.
         (_, ident) if ident == &self_ident => ReturnType::None,
-        (_, _) => ReturnType::EntireRow(attr.return_object.clone()),
+        (_, _) => ReturnType::EntireRow(attr.parsed_struct.return_object.clone()),
     };
 
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.clone().query_builder_execution();
     let returning_statement = return_type.returning_statement();
 
-    let table_name = attr.table_name.clone().to_string();
+    let table_name = attr.parsed_struct.table_name.clone().to_string();
     let (pk_name, pk_ident) = match attr.primary_key {
         Some(ref pk) => (&pk.name, &pk.ident),
         None => panic!("No primary key field found"),
@@ -289,7 +289,7 @@ pub fn delete_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let return_type = ReturnType::None;
     let function_output = return_type.clone().function_output();
     let query_builder_execution = return_type.query_builder_execution();
-    let table_name = attr.table_name.clone().to_string();
+    let table_name = attr.parsed_struct.table_name.clone().to_string();
     let (pk_name, pk_ident) = match attr.primary_key {
         Some(ref pk) => (&pk.name, &pk.ident),
         None => panic!("No primary key field found"),
@@ -337,7 +337,7 @@ mod tests {
         use quote::format_ident;
         use syn::parse_quote;
 
-        use crate::attr::{Column, Operation, TableName};
+        use crate::attr::{Column, Operation, ParsedStruct};
 
         use super::*;
 
@@ -346,10 +346,13 @@ mod tests {
             if auto_increment {
                 primary_key.set_auto_increment();
             };
+            let parsed_struct = ParsedStruct::new(
+                &format_ident!("Contact"),
+                Some("contact".to_string()),
+                Some(format_ident!("Self")),
+            );
             Attr {
-                struct_name: format_ident!("Contact"),
-                table_name: TableName::new("contact".to_string()),
-                return_object: format_ident!("Self"),
+                parsed_struct,
                 primary_key: Some(primary_key),
                 field_names: vec![
                     "id".to_string(),
@@ -639,10 +642,9 @@ mod tests {
         #[test]
         fn test_custom_output_create() {
             let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let input = Attr {
-                struct_name: format_ident!("NewContact"),
-                table_name: TableName::new("contact".to_string()),
-                return_object: format_ident!("Contact"),
+                parsed_struct,
                 primary_key: None,
                 field_names: vec![
                     "first_name".to_string(),
@@ -685,10 +687,9 @@ mod tests {
         #[test]
         #[should_panic]
         fn test_custom_output_create() {
+            let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let input = Attr {
-                struct_name: format_ident!("NewContact"),
-                table_name: TableName::new("contact".to_string()),
-                return_object: format_ident!("Contact"),
+                parsed_struct,
                 primary_key: None,
                 field_names: vec![
                     "first_name".to_string(),
@@ -706,10 +707,9 @@ mod tests {
         fn test_custom_output_update() {
             use syn::parse_quote;
             let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let input = Attr {
-                struct_name: format_ident!("UpdateContact"),
-                table_name: TableName::new("contact".to_string()),
-                return_object: format_ident!("Contact"),
+                parsed_struct,
                 primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
                 field_names: vec!["custom_id".to_string(), "first_name".to_string()],
                 operations: vec![Operation::Update],
@@ -756,10 +756,9 @@ mod tests {
         #[test]
         fn test_custom_output_update() {
             use syn::parse_quote;
+            let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let input = Attr {
-                struct_name: format_ident!("UpdateContact"),
-                table_name: TableName::new("contact".to_string()),
-                return_object: format_ident!("Contact"),
+                parsed_struct,
                 primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
                 field_names: vec!["custom_id".to_string(), "first_name".to_string()],
                 operations: vec![Operation::Update],
