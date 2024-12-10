@@ -21,7 +21,7 @@ pub fn derive_tiny_orm(input: TokenStream) -> TokenStream {
 }
 
 fn generate_impl(attr: &attr::Attr) -> proc_macro2::TokenStream {
-    let struct_name = attr.struct_name.clone();
+    let struct_name = attr.parsed_struct.name.clone();
 
     let get_impl = if attr.operations.contains(&attr::Operation::Get) {
         quotes::get_by_id_fn(attr)

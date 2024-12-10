@@ -24,7 +24,6 @@ Why TinyORM over another one?
 
 - Minimal set of dependencies (fast compile time)  
 -- [SQLx](https://github.com/launchbadge/sqlx)  
--- Standard libraries for a proc macro (syn, etc.)  
 -- [convert_case](https://github.com/rutrum/convert-case)
 
 - Intuitive with smart defaults and flexible
@@ -96,10 +95,18 @@ Default is `Self` which corresponds to the current Strut.
 
 _Note: `only` and `exclude` cannot be used together._
 
+By convention, if a struct name
+- Starts with `New` then it will automatically use the following arguments  
+`#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutNewAsPrefix", only = "create")]`
+- Starts with `Update` then it will automatically use the following arguments  
+`#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutUpdateAsPrefix", only = "update")]`
+- Everything else would be the equivalent of using the following  
+`#[tiny_orm(table_name = "table_name", return_object = "Self", exclude = "create,update")]`
+
 Example
 ```rust
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(exclude = "create,update")]
+// #[tiny_orm(table_name = "todo", return_object = "Self", exclude = "create,update")]
 struct Todo {
     id: i32,
     created_at: DateTime<Utc>,
@@ -109,14 +116,14 @@ struct Todo {
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
-struct NewTodos {
+// #[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
+struct NewTodo {
     description: String,
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
-struct UpdateTodos {
+// #[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
+struct UpdateTodo {
     id: i32,
     done: bool
 }
@@ -124,7 +131,7 @@ struct UpdateTodos {
 The above takes the assumption that some columns can be nullable and others are auto generated (eg an ID column that would be auto increment).
 Thus it would generate the following
 ```rust
-impl NewTodos {
+impl NewTodo {
     pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todo> {
         // Use the NewTodo object to create a record
         // in the database and return the record created.
@@ -135,7 +142,7 @@ impl NewTodos {
     }
 }
 
-impl UpdateTodos {
+impl UpdateTodo {
     pub fn update(&self, pool: &DbPool) -> sqlx::Result<Todo> {
         // Update the Todo object with partial information based
         // on the id (default primary_key).

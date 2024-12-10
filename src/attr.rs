@@ -11,6 +11,76 @@ use syn::{
 const NAME_MACRO_OPERATION_ARG: &str = "tiny_orm";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum StructType {
+    Create,
+    Update,
+    Generic,
+}
+impl StructType {
+    pub fn default_operation(&self) -> Operations {
+        match self {
+            StructType::Create => vec![Operation::Create],
+            StructType::Update => vec![Operation::Update],
+            StructType::Generic => vec![Operation::Get, Operation::List, Operation::Delete],
+        }
+    }
+    pub fn remove_prefix(&self, input: String) -> String {
+        match self {
+            StructType::Create => input.replace("New", ""),
+            StructType::Update => input.replace("Update", ""),
+            StructType::Generic => input,
+        }
+    }
+}
+impl From<&str> for StructType {
+    fn from(input: &str) -> StructType {
+        if input.starts_with("New") {
+            StructType::Create
+        } else if input.starts_with("Update") {
+            StructType::Update
+        } else {
+            StructType::Generic
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedStruct {
+    pub name: StructName,
+    pub table_name: TableName,
+    pub struct_type: StructType,
+    pub return_object: ReturnObject,
+}
+impl ParsedStruct {
+    pub fn new(
+        struct_name: &Ident,
+        table_name: Option<String>,
+        return_object: Option<ReturnObject>,
+    ) -> Self {
+        let name = struct_name.to_string();
+        let struct_type = StructType::from(name.as_str());
+
+        let table_name = match table_name {
+            Some(value) => value,
+            None => struct_type.remove_prefix(name.clone()),
+        };
+
+        let return_object = match (return_object, &struct_type) {
+            (Some(value), _) => value,
+            (None, &StructType::Generic) => format_ident!("Self"),
+            (None, _) => format_ident!("{}", struct_type.remove_prefix(name)),
+        };
+
+        Self {
+            name: struct_name.clone(),
+            table_name: TableName::new(table_name),
+            struct_type,
+            return_object,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operation {
     Get,
     List,
@@ -93,9 +163,7 @@ pub type Operations = Vec<Operation>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attr {
-    pub struct_name: StructName,
-    pub table_name: TableName,
-    pub return_object: ReturnObject,
+    pub parsed_struct: ParsedStruct,
     pub primary_key: Option<PrimaryKey>,
     pub field_names: FieldNames,
     pub operations: Operations,
@@ -104,14 +172,12 @@ pub struct Attr {
 impl Attr {
     pub fn parse(input: DeriveInput) -> Self {
         let struct_name = input.ident;
-        let (table_name, return_object, operations) =
+        let (parsed_struct, operations) =
             Parser::parse_struct_macro_arguments(&struct_name, &input.attrs);
         let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
 
         Attr {
-            struct_name,
-            table_name,
-            return_object,
+            parsed_struct,
             primary_key,
             field_names,
             operations,
@@ -125,7 +191,7 @@ impl Parser {
     fn parse_struct_macro_arguments(
         struct_name: &Ident,
         attrs: &[Attribute],
-    ) -> (TableName, ReturnObject, Operations) {
+    ) -> (ParsedStruct, Operations) {
         let mut only: Option<Vec<Operation>> = None;
         let mut exclude: Option<Vec<Operation>> = None;
         let mut return_object: Option<Ident> = None;
@@ -207,12 +273,12 @@ impl Parser {
             }
         }
 
-        let table_name = TableName::new(table_name.unwrap_or(struct_name.to_string()));
-        let return_object = return_object.unwrap_or(format_ident!("Self"));
-        let operations = Parser::get_operations(only, exclude)
-            .expect("Cannot parse the only/exclude operations properly.");
+        let parsed_struct = ParsedStruct::new(struct_name, table_name, return_object);
+        let operations =
+            Parser::get_operations(only, exclude, parsed_struct.struct_type.default_operation())
+                .expect("Cannot parse the only/exclude operations properly.");
 
-        (table_name, return_object, operations)
+        (parsed_struct, operations)
     }
 
     fn parse_fields_macro_arguments(data: Data) -> (Option<PrimaryKey>, FieldNames) {
@@ -273,9 +339,10 @@ impl Parser {
     fn get_operations(
         only: Option<Operations>,
         exclude: Option<Operations>,
+        default: Operations,
     ) -> Result<Operations, &'static str> {
         match (only, exclude) {
-            (None, None) => Ok(Operation::all()),
+            (None, None) => Ok(default),
             (Some(_), Some(_)) => Err("Only and Exclude are specified which is not allowed"),
             (Some(values), None) => Ok(values),
             (None, Some(values)) => Ok(Operation::all()
@@ -307,9 +374,13 @@ mod tests {
     mod operation_tests {
         use super::{Operation, Parser};
 
+        // fn struct_name() {
+        //     TableName
+        // }
+
         #[test]
         fn test_get_them_all_by_default() {
-            let mut result = Parser::get_operations(None, None).unwrap();
+            let mut result = Parser::get_operations(None, None, Operation::all()).unwrap();
             result.sort();
             assert_eq!(
                 result,
@@ -324,31 +395,40 @@ mod tests {
         }
 
         #[test]
+        fn test_get_default_by_default() {
+            let mut result =
+                Parser::get_operations(None, None, vec![Operation::Create, Operation::Delete])
+                    .unwrap();
+            result.sort();
+            assert_eq!(result, vec![Operation::Create, Operation::Delete]);
+        }
+
+        #[test]
         fn test_only_and_exclude() {
             let only = Some(vec![Operation::Create]);
             let exclude = Some(vec![Operation::Delete]);
-            let result = Parser::get_operations(only, exclude);
+            let result = Parser::get_operations(only, exclude, Operation::all());
             assert!(result.is_err());
         }
 
         #[test]
         fn test_only_one_value() {
             let only = vec![Operation::Create];
-            let result = Parser::get_operations(Some(only.clone()), None);
+            let result = Parser::get_operations(Some(only.clone()), None, Operation::all());
             assert_eq!(result.unwrap(), only);
         }
 
         #[test]
         fn test_only_multiple_values() {
             let only = vec![Operation::Update, Operation::Delete];
-            let result = Parser::get_operations(Some(only.clone()), None);
+            let result = Parser::get_operations(Some(only.clone()), None, Operation::all());
             assert_eq!(result.unwrap(), only);
         }
 
         #[test]
         fn test_exclude_one_value() {
             let exclude = Some(vec![Operation::Create]);
-            let mut result = Parser::get_operations(None, exclude).unwrap();
+            let mut result = Parser::get_operations(None, exclude, Operation::all()).unwrap();
             result.sort();
             assert_eq!(
                 result,
@@ -364,7 +444,7 @@ mod tests {
         #[test]
         fn test_exclude_multiple_values() {
             let exclude = Some(vec![Operation::Update, Operation::Delete]);
-            let mut result = Parser::get_operations(None, exclude).unwrap();
+            let mut result = Parser::get_operations(None, exclude, Operation::all()).unwrap();
             result.sort();
             assert_eq!(
                 result,
@@ -377,16 +457,21 @@ mod tests {
         use quote::format_ident;
         use syn::parse_quote;
 
-        use crate::attr::{Operation, Parser};
+        use crate::attr::{Operation, Parser, StructType};
 
         #[test]
         fn test_parse_only_attribute_alone() {
             let struct_name = format_ident!("MyStruct");
             let attrs = vec![parse_quote!(#[tiny_orm(only = "create,get")])];
-            let (table_name, return_object, operations) =
+            let (parsed_struct, operations) =
                 Parser::parse_struct_macro_arguments(&struct_name, &attrs);
-            assert_eq!(table_name.0.to_string(), "my_struct".to_string());
-            assert_eq!(return_object, format_ident!("Self"));
+            assert_eq!(parsed_struct.name.to_string(), "MyStruct".to_string());
+            assert_eq!(parsed_struct.struct_type, StructType::Generic);
+            assert_eq!(
+                parsed_struct.table_name.0.to_string(),
+                "my_struct".to_string()
+            );
+            assert_eq!(parsed_struct.return_object, format_ident!("Self"));
             assert_eq!(operations, vec![Operation::Create, Operation::Get]);
         }
 
@@ -394,10 +479,16 @@ mod tests {
         fn test_parse_exclude_attribute_alone() {
             let struct_name = format_ident!("MyStruct");
             let attrs = vec![parse_quote!(#[tiny_orm(exclude = "create,get")])];
-            let (table_name, return_object, operations) =
+            let (parsed_struct, operations) =
                 Parser::parse_struct_macro_arguments(&struct_name, &attrs);
-            assert_eq!(table_name.0.to_string(), "my_struct".to_string());
-            assert_eq!(return_object, format_ident!("Self"));
+
+            assert_eq!(parsed_struct.name.to_string(), "MyStruct".to_string());
+            assert_eq!(parsed_struct.struct_type, StructType::Generic);
+            assert_eq!(
+                parsed_struct.table_name.0.to_string(),
+                "my_struct".to_string()
+            );
+            assert_eq!(parsed_struct.return_object, format_ident!("Self"));
             assert_eq!(
                 operations,
                 vec![Operation::List, Operation::Update, Operation::Delete]
@@ -408,47 +499,124 @@ mod tests {
         fn test_parse_table_name_attribute_alone() {
             let struct_name = format_ident!("MyStruct");
             let attrs = vec![parse_quote!(#[tiny_orm(table_name = "custom_name")])];
-            let (table_name, return_object, operations) =
+            let (parsed_struct, operations) =
                 Parser::parse_struct_macro_arguments(&struct_name, &attrs);
-            assert_eq!(table_name.0.to_string(), "custom_name".to_string());
-            assert_eq!(return_object, format_ident!("Self"));
-            assert_eq!(operations, Operation::all());
+            assert_eq!(parsed_struct.name.to_string(), "MyStruct".to_string());
+            assert_eq!(parsed_struct.struct_type, StructType::Generic);
+            assert_eq!(
+                parsed_struct.table_name.0.to_string(),
+                "custom_name".to_string()
+            );
+            assert_eq!(parsed_struct.return_object, format_ident!("Self"));
+            assert_eq!(
+                operations,
+                vec![Operation::Get, Operation::List, Operation::Delete]
+            );
         }
 
         #[test]
         fn test_parse_return_object_attribute_alone() {
             let struct_name = format_ident!("MyStruct");
             let attrs = vec![parse_quote!(#[tiny_orm(return_object = "Operation")])];
-            let (table_name, return_object, operations) =
+            let (parsed_struct, operations) =
                 Parser::parse_struct_macro_arguments(&struct_name, &attrs);
-            assert_eq!(table_name.0.to_string(), "my_struct".to_string());
-            assert_eq!(return_object, format_ident!("Operation"));
-            assert_eq!(operations, Operation::all());
+            assert_eq!(
+                parsed_struct.table_name.0.to_string(),
+                "my_struct".to_string()
+            );
+            assert_eq!(parsed_struct.struct_type, StructType::Generic);
+            assert_eq!(parsed_struct.return_object, format_ident!("Operation"));
+            assert_eq!(
+                operations,
+                vec![Operation::Get, Operation::List, Operation::Delete]
+            );
         }
 
         #[test]
-        fn test_parse_multuple_attributes() {
+        fn test_parse_multiple_attributes() {
             let struct_name = format_ident!("MyStruct");
             let attrs = vec![
                 parse_quote!(#[tiny_orm(table_name = "custom", return_object = "Operation", only = "create")]),
             ];
-            let (table_name, return_object, operations) =
+            let (parsed_struct, operations) =
                 Parser::parse_struct_macro_arguments(&struct_name, &attrs);
-            assert_eq!(table_name.0.to_string(), "custom".to_string());
-            assert_eq!(return_object, format_ident!("Operation"));
+            assert_eq!(parsed_struct.table_name.0.to_string(), "custom".to_string());
+            assert_eq!(parsed_struct.return_object, format_ident!("Operation"));
             assert_eq!(operations, vec![Operation::Create]);
         }
 
         #[test]
-        fn test_parse_multuple_attributes_withespace() {
+        fn test_parse_multiple_attributes_withespace() {
             let struct_name = format_ident!("MyStruct");
             let attrs = vec![
                 parse_quote!(#[tiny_orm(table_name = "   custom ", return_object = "   Operation  ", only = "  create   ,  delete")]),
             ];
-            let (table_name, return_object, operations) =
+            let (parsed_struct, operations) =
                 Parser::parse_struct_macro_arguments(&struct_name, &attrs);
-            assert_eq!(table_name.0.to_string(), "custom".to_string());
-            assert_eq!(return_object, format_ident!("Operation"));
+            assert_eq!(parsed_struct.table_name.0.to_string(), "custom".to_string());
+            assert_eq!(parsed_struct.return_object, format_ident!("Operation"));
+            assert_eq!(operations, vec![Operation::Create, Operation::Delete]);
+        }
+
+        #[test]
+        fn test_default_parse_create_type_of_struct() {
+            let struct_name = format_ident!("NewMyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm()])];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.name.to_string(), "NewMyStruct".to_string());
+            assert_eq!(
+                parsed_struct.table_name.0.to_string(),
+                "my_struct".to_string()
+            );
+            assert_eq!(parsed_struct.struct_type, StructType::Create);
+            assert_eq!(parsed_struct.return_object, format_ident!("MyStruct"));
+            assert_eq!(operations, vec![Operation::Create]);
+        }
+
+        #[test]
+        fn test_default_parse_update_type_of_struct() {
+            let struct_name = format_ident!("UpdateMyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm()])];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.name.to_string(), "UpdateMyStruct".to_string());
+            assert_eq!(
+                parsed_struct.table_name.0.to_string(),
+                "my_struct".to_string()
+            );
+            assert_eq!(parsed_struct.struct_type, StructType::Update);
+            assert_eq!(parsed_struct.return_object, format_ident!("MyStruct"));
+            assert_eq!(operations, vec![Operation::Update]);
+        }
+
+        #[test]
+        fn test_parse_create_type_of_struct_with_override() {
+            let struct_name = format_ident!("NewMyStruct");
+            let attrs = vec![
+                parse_quote!(#[tiny_orm(table_name = "   custom ", return_object = "   Operation  ", only = "  create   ,  delete")]),
+            ];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.name.to_string(), "NewMyStruct".to_string());
+            assert_eq!(parsed_struct.table_name.0.to_string(), "custom".to_string());
+            assert_eq!(parsed_struct.struct_type, StructType::Create);
+            assert_eq!(parsed_struct.return_object, format_ident!("Operation"));
+            assert_eq!(operations, vec![Operation::Create, Operation::Delete]);
+        }
+
+        #[test]
+        fn test_parse_update_type_of_struct_with_override() {
+            let struct_name = format_ident!("UpdateMyStruct");
+            let attrs = vec![
+                parse_quote!(#[tiny_orm(table_name = "   custom ", return_object = "   Operation  ", only = "  create   ,  delete")]),
+            ];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.name.to_string(), "UpdateMyStruct".to_string());
+            assert_eq!(parsed_struct.table_name.0.to_string(), "custom".to_string());
+            assert_eq!(parsed_struct.struct_type, StructType::Update);
+            assert_eq!(parsed_struct.return_object, format_ident!("Operation"));
             assert_eq!(operations, vec![Operation::Create, Operation::Delete]);
         }
     }
@@ -604,7 +772,7 @@ mod tests {
         use quote::format_ident;
         use syn::{parse_quote, DeriveInput};
 
-        use crate::attr::{Column, Operation, TableName};
+        use crate::attr::{Column, Operation, ParsedStruct};
 
         use super::Attr;
 
@@ -620,12 +788,11 @@ mod tests {
             };
 
             let result = Attr::parse(input);
+            let parsed_struct = ParsedStruct::new(&format_ident!("Contact"), None, None);
             assert_eq!(
                 result,
                 Attr {
-                    struct_name: format_ident!("Contact"),
-                    table_name: TableName::new("contact".to_string()),
-                    return_object: format_ident!("Self"),
+                    parsed_struct,
                     primary_key: Some(Column::new("id".to_string(), parse_quote!(i64))),
                     field_names: vec![
                         "id".to_string(),
@@ -633,7 +800,7 @@ mod tests {
                         "updated_at".to_string(),
                         "last_name".to_string()
                     ],
-                    operations: Operation::all(),
+                    operations: vec![Operation::Get, Operation::List, Operation::Delete],
                 }
             );
         }
@@ -652,12 +819,15 @@ mod tests {
             };
 
             let result = Attr::parse(input);
+            let parsed_struct = ParsedStruct::new(
+                &format_ident!("Contact"),
+                Some("specific_table".to_string()),
+                Some(format_ident!("AnotherObject")),
+            );
             assert_eq!(
                 result,
                 Attr {
-                    struct_name: format_ident!("Contact"),
-                    table_name: TableName::new("specific_table".to_string()),
-                    return_object: format_ident!("AnotherObject"),
+                    parsed_struct,
                     primary_key: Some(Column::new("custom_pk".to_string(), parse_quote!(i64))),
                     field_names: vec![
                         "custom_pk".to_string(),
