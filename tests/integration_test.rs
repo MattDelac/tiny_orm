@@ -14,6 +14,14 @@ struct Todo {
     description: String,
     done: bool,
 }
+impl Todo {
+    pub fn description(&self) -> &String {
+        &self.description
+    }
+    pub fn change_description(&mut self, description: String) {
+        self.description = description
+    }
+}
 
 #[derive(Debug, PartialEq, Table)]
 #[tiny_orm(table_name = "todo", only = "create", return_object = "Todo")]
@@ -115,4 +123,28 @@ async fn test_delete(pool: SqlitePool) {
     item.delete(&pool).await.unwrap();
     let retrieved_item = Todo::get_by_id(&pool, item.id).await.unwrap();
     assert!(retrieved_item.is_none());
+}
+
+#[sqlx::test(migrations = "examples/sqlite/migrations")]
+async fn test_insert_get_with_a_transaction(pool: SqlitePool) {
+    let mut tx = pool.begin().await.unwrap();
+    let description = "My new item".to_string();
+    let new_item = NewTodos::new(description.clone());
+
+    let mut inserted_item = new_item.create(&mut *tx).await.unwrap();
+    assert!(inserted_item.id > -0);
+    assert!(inserted_item.created_at < Utc::now());
+    assert!(inserted_item.updated_at < Utc::now());
+    assert_eq!(inserted_item.description, description);
+
+    inserted_item.change_description("New description".to_string());
+    inserted_item.update(&mut *tx).await.unwrap();
+
+    tx.commit().await.unwrap();
+
+    let checked_item = Todo::get_by_id(&pool, inserted_item.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(checked_item.description(), "New description");
 }
