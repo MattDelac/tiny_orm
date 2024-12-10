@@ -42,10 +42,10 @@ This project is licensed under [MIT] - see the [LICENSE](LICENSE) file for detai
 ## Usage
 ### Basic
 ```rust
-use sqlx_tiny_orm::TinyORM;
+use sqlx_tiny_orm::Table;
 
-#[derive(Debug, FromRow, TinyORM, Clone)]
-struct Todos {
+#[derive(Debug, FromRow, Table, Clone)]
+struct Todo {
     id: i32,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -54,9 +54,9 @@ struct Todos {
 }
 ```
 
-The code above would generate the following methods on the Todos object
+The code above would generate the following methods on the Todo object
 ```rust
-impl Todos {
+impl Todo {
     pub fn get_by_id(pool: &DbPool, id: &i32) -> sqlx::Result<Self> {
         // Get a specific record for a given ID
         // Use the `id` column by default
@@ -73,7 +73,7 @@ impl Todos {
     }
     pub fn update(&self, pool: &DbPool) -> sqlx::Result<()> {
         // Update the record in the database with the values
-        // currently part of the Todos object
+        // currently part of the Todo object
     }
 }
 ```
@@ -82,7 +82,7 @@ impl Todos {
 More examples can be found in the [examples](./examples) directory.
 
 ### Options
-TinyORM comes with a few options to give flexibility to the user
+The Table macro comes with a few options to give flexibility to the user
 
 #### At the Struct level
 - **table_name**: The name of the table in the database.
@@ -98,9 +98,9 @@ _Note: `only` and `exclude` cannot be used together._
 
 Example
 ```rust
-#[derive(Debug, FromRow, TinyORM, Clone)]
+#[derive(Debug, FromRow, Table, Clone)]
 #[tiny_orm(exclude = "create,update")]
-struct Todos {
+struct Todo {
     id: i32,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -108,14 +108,14 @@ struct Todos {
     done: bool,
 }
 
-#[derive(Debug, FromRow, TinyORM, Clone)]
-#[tiny_orm(table_name = "todos", return_object = "Todos", only = "create")]
+#[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
 struct NewTodos {
     description: String,
 }
 
-#[derive(Debug, FromRow, TinyORM, Clone)]
-#[tiny_orm(table_name = "todos", return_object = "Todos", only = "update")]
+#[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
 struct UpdateTodos {
     id: i32,
     done: bool
@@ -125,7 +125,7 @@ The above takes the assumption that some columns can be nullable and others are 
 Thus it would generate the following
 ```rust
 impl NewTodos {
-    pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todos> {
+    pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todo> {
         // Use the NewTodo object to create a record
         // in the database and return the record created.
 
@@ -136,7 +136,7 @@ impl NewTodos {
 }
 
 impl UpdateTodos {
-    pub fn update(&self, pool: &DbPool) -> sqlx::Result<Todos> {
+    pub fn update(&self, pool: &DbPool) -> sqlx::Result<Todo> {
         // Update the Todo object with partial information based
         // on the id (default primary_key).
         // Because `return_type` is specified, it will return the whole record in the database.
@@ -156,8 +156,8 @@ _Note: MySQL only supports "auto increment" in that case. It does not support re
 
 Example
 ```rust
-#[derive(Debug, FromRow, TinyORM, Clone)]
-struct Todos {
+#[derive(Debug, FromRow, Table, Clone)]
+struct Todo {
     #[tiny_orm(primary_key)]
     custom_pk: Uuid,
     description: String,
@@ -166,8 +166,8 @@ struct Todos {
 ```
 
 ```rust
-#[derive(Debug, FromRow, TinyORM, Clone)]
-struct Todos {
+#[derive(Debug, FromRow, Table, Clone)]
+struct Todo {
     #[tiny_orm(primary_key(auto))]
     id: i64,
     description: String,
@@ -177,7 +177,7 @@ struct Todos {
 
 Thus it would generate the following
 ```rust
-impl Todos {
+impl Todo {
     pub fn create(&self, pool: &DbPool) -> sqlx::Result<Uuid> { // or i64 depending on the example
         // Create the Todo object as a record in
         // the database and returns the created record.

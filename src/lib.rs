@@ -7,7 +7,7 @@ mod attr;
 mod database;
 mod quotes;
 
-#[proc_macro_derive(TinyORM, attributes(tiny_orm))]
+#[proc_macro_derive(Table, attributes(tiny_orm))]
 pub fn derive_tiny_orm(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let attr = attr::Attr::parse(input);
