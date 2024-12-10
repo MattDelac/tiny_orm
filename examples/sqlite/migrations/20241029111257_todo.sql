@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS todos (
+CREATE TABLE IF NOT EXISTS todo (
     id          INTEGER PRIMARY KEY NOT NULL,
     created_at  Text                NOT NULL,
     updated_at  Text                NOT NULL,

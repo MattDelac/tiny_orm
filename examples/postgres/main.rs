@@ -3,14 +3,14 @@ use sqlx::{
     types::chrono::{DateTime, Utc},
     FromRow, PgPool,
 };
-use tiny_orm::TinyORM;
+use tiny_orm::Table;
 use uuid::Uuid;
 
 #[allow(unused_variables, dead_code)]
-#[derive(Debug, FromRow, TinyORM, Clone)]
+#[derive(Debug, FromRow, Table, Clone)]
 #[tiny_orm(exclude = "create,update")]
-struct Todos {
-    // Table name would automatically be `todos`. Could be override with `#[tiny_orm(table_name = "xxx")]`
+struct Todo {
+    // Table name would automatically be `todo`. Could be override with `#[tiny_orm(table_name = "xxx")]`
     #[tiny_orm(primary_key)]
     pub id: Uuid, // Or use `#[tiny_orn(primary_key)]` to tell which field to use
     pub created_at: DateTime<Utc>,
@@ -18,8 +18,8 @@ struct Todos {
     pub description: String,
     pub done: bool,
 }
-/* TinyORM would generate the following methods
-impl Todos {
+/* Table would generate the following methods
+impl Todo {
     pub fn get_by_id(id: &Uuid) -> sqlx::Result<Self> {
         todo!("Get by ID");
     }
@@ -32,15 +32,15 @@ impl Todos {
 }
 */
 
-#[derive(Debug, FromRow, TinyORM, Clone)]
-#[tiny_orm(table_name = "todos", return_object = "Todos", only = "create")]
+#[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(table_name = "todo", return_object = "Todo", only = "create")]
 struct NewTodos {
     description: String,
     done: bool,
 }
-/* TinyORM would create the following method
+/* Table would create the following method
 impl NewTodos {
-    pub fn create(&self) -> sqlx::Result<Todos> {
+    pub fn create(&self) -> sqlx::Result<Todo> {
         todo!("Create a record partially in the database and return it");
     }
 }
@@ -55,23 +55,23 @@ impl NewTodos {
     }
 }
 
-#[derive(Debug, FromRow, TinyORM, Clone)]
-#[tiny_orm(table_name = "todos", return_object = "Todos", only = "update")]
+#[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(table_name = "todo", return_object = "Todo", only = "update")]
 struct UpdateTodos {
     id: Uuid,
     description: String,
     done: bool,
 }
-/* TinyORM would create the following method
+/* Table would create the following method
 impl UpdateTodos {
-    pub fn update(&self) -> sqlx::Result<Todos> {
+    pub fn update(&self) -> sqlx::Result<Todo> {
         todo!("Update a record partially in the database and return it");
     }
 }
 */
 
-impl From<Todos> for UpdateTodos {
-    fn from(todo: Todos) -> UpdateTodos {
+impl From<Todo> for UpdateTodos {
+    fn from(todo: Todo) -> UpdateTodos {
         UpdateTodos {
             id: todo.id,
             description: todo.description,
@@ -97,7 +97,7 @@ async fn main() {
         .expect("Todo item should be created");
     println!("My first todo created {:?}", todo);
 
-    let first_todo = Todos::get_by_id(&pool, todo.id).await.unwrap();
+    let first_todo = Todo::get_by_id(&pool, todo.id).await.unwrap();
     match first_todo {
         Some(ref item) => println!("First todo item is {:?}", item),
         None => println!("Todo item does not exist for the id {0}", todo.id),
@@ -110,14 +110,14 @@ async fn main() {
         .await
         .expect("Item should be updated");
 
-    let check_updated_item = Todos::get_by_id(&pool, todo.id).await.unwrap();
+    let check_updated_item = Todo::get_by_id(&pool, todo.id).await.unwrap();
     match check_updated_item {
         Some(ref item) => println!("Updated item is {:?}", item),
         None => println!("Todo item does not exist for the id {0}", todo.id),
     }
 
     check_updated_item.unwrap().delete(&pool).await.unwrap();
-    let deleted_todo = Todos::get_by_id(&pool, todo.id).await.unwrap();
+    let deleted_todo = Todo::get_by_id(&pool, todo.id).await.unwrap();
     match deleted_todo {
         Some(ref item) => println!("Todo item still exists What??? / {:?}", item),
         None => println!(
