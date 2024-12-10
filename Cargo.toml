@@ -1,6 +1,6 @@
 [package]
 name = "tiny-orm"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 authors = ["Matt Delacour - mdelacour.com"]
 description = "A tiny ORM for CRUD operations built on top of SQLx QueryBuilder."
