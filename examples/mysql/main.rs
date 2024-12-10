@@ -6,6 +6,7 @@ use sqlx::{
 use tiny_orm::Table;
 
 #[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(all)]
 struct Todo {
     #[tiny_orm(primary_key(auto))]
     id: i64,

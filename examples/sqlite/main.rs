@@ -6,6 +6,7 @@ use sqlx::{
 use tiny_orm::Table;
 
 #[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(all)]
 struct Todo {
     id: i32,
     created_at: DateTime<Utc>,

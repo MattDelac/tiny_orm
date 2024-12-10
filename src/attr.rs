@@ -233,6 +233,9 @@ impl Parser {
                                 ..
                             }) = name_value.clone().value
                             {
+                                if only.is_some() {
+                                    panic!("The 'only' keyword has already been specified")
+                                };
                                 only = Some(
                                     lit_str
                                         .value()
@@ -252,6 +255,9 @@ impl Parser {
                                 ..
                             }) = name_value.clone().value
                             {
+                                if exclude.is_some() {
+                                    panic!("The 'exclude' keyword has already been specified")
+                                };
                                 exclude = Some(
                                     lit_str
                                         .value()
@@ -264,6 +270,9 @@ impl Parser {
                                         .collect(),
                                 );
                             };
+                        }
+                        Meta::Path(path) if path.is_ident("all") => {
+                            only = Some(Operation::all());
                         }
                         _ => {
                             panic!("Error - Skip unknown name value");
@@ -618,6 +627,53 @@ mod tests {
             assert_eq!(parsed_struct.struct_type, StructType::Update);
             assert_eq!(parsed_struct.return_object, format_ident!("Operation"));
             assert_eq!(operations, vec![Operation::Create, Operation::Delete]);
+        }
+
+        #[test]
+        fn test_return_all_operations_for_generic_struct() {
+            let struct_name = format_ident!("MyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm(all, table_name = "custom")])];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.name.to_string(), "MyStruct".to_string());
+            assert_eq!(parsed_struct.table_name.0.to_string(), "custom".to_string());
+            assert_eq!(operations, Operation::all());
+        }
+
+        #[test]
+        fn test_return_all_operations_for_update_struct() {
+            let struct_name = format_ident!("NewMyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm(all)])];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.struct_type, StructType::Create);
+            assert_eq!(operations, Operation::all());
+        }
+
+        #[test]
+        fn test_return_all_operations_for_create_struct() {
+            let struct_name = format_ident!("UpdateMyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm(all)])];
+            let (parsed_struct, operations) =
+                Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+            assert_eq!(parsed_struct.struct_type, StructType::Update);
+            assert_eq!(operations, Operation::all());
+        }
+
+        #[test]
+        #[should_panic]
+        fn test_cannot_pass_all_with_only() {
+            let struct_name = format_ident!("MyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm(all, only = "create")])];
+            let _ = Parser::parse_struct_macro_arguments(&struct_name, &attrs);
+        }
+
+        #[test]
+        #[should_panic]
+        fn test_cannot_pass_all_with_exclude() {
+            let struct_name = format_ident!("MyStruct");
+            let attrs = vec![parse_quote!(#[tiny_orm(all, exclude = "delete")])];
+            let _ = Parser::parse_struct_macro_arguments(&struct_name, &attrs);
         }
     }
 
