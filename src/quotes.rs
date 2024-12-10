@@ -20,20 +20,20 @@ impl ReturnType {
             ReturnType::PrimaryKey(primary_key) => {
                 let pk_type = primary_key._type;
                 quote! {
-                    sqlx::Result<#pk_type>
+                    ::sqlx::Result<#pk_type>
                 }
             }
             ReturnType::EntireRow(return_object) => quote! {
-                sqlx::Result<#return_object>
+                ::sqlx::Result<#return_object>
             },
             ReturnType::OptionalRow(return_object) => quote! {
-                sqlx::Result<Option<#return_object>>
+                ::sqlx::Result<Option<#return_object>>
             },
             ReturnType::MultipleRows(return_object) => quote! {
-                sqlx::Result<Vec<#return_object>>
+                ::sqlx::Result<Vec<#return_object>>
             },
             ReturnType::None => quote! {
-                sqlx::Result<()>
+                ::sqlx::Result<()>
             },
         }
     }
@@ -127,8 +127,11 @@ pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
         None => panic!("No primary key field found which is mandatory for the 'get' operation"),
     };
     quote! {
-        pub async fn get_by_id(db: &sqlx::Pool<sqlx::#db_type_ident>, id: #pk_type) -> #function_output {
-            let mut qb = sqlx::QueryBuilder::new("SELECT * FROM ");
+        pub async fn get_by_id<'e, E>(db: E, id: #pk_type) -> #function_output
+        where
+            E: ::sqlx::#db_type_ident<'e>
+        {
+        let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
             qb.push(#table_name);
             qb.push(" WHERE ");
             qb.push(#pk_name);
@@ -148,8 +151,11 @@ pub fn list_all_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let table_name = attr.table_name.clone().to_string();
 
     quote! {
-        pub async fn list_all(db: &sqlx::Pool<sqlx::#db_type_ident>) -> #function_output {
-            let mut qb = sqlx::QueryBuilder::new("SELECT * FROM ");
+        pub async fn list_all<'e, E>(db: E) -> #function_output
+        where
+            E: ::sqlx::#db_type_ident<'e>
+        {
+            let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
             qb.push(#table_name);
             #query_builder_execution
         }
@@ -162,7 +168,7 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let table_name = attr.table_name.clone().to_string();
 
     let mysql_specific_error = r#"MySQL does not support the `RETURNING *` statement
-    Thus it's not possible to create a record without a known primary_key column with TinyORM.
+    Thus it's not possible to create a record without a known primary_key column with the `Table` macro.
     If an auto increment column is used, set a dummy value and it will be ignored."#;
     let return_type = match (&db_type, attr.primary_key.clone()) {
         (&DbType::MySQL, None) => panic!("{mysql_specific_error}"),
@@ -192,8 +198,11 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
         .join(", ");
 
     quote! {
-        pub async fn create(&self, db: &sqlx::Pool<sqlx::#db_type_ident>) -> #function_output {
-            let mut qb = sqlx::QueryBuilder::new("INSERT INTO ");
+        pub async fn create<'e, E>(&self, db: E) -> #function_output
+        where
+            E: ::sqlx::#db_type_ident<'e>
+        {
+            let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
             qb.push(#table_name);
             qb.push(" (");
             qb.push(#fields_str);
@@ -244,8 +253,11 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
         .collect::<Vec<_>>();
 
     quote! {
-        pub async fn update(&self, db: &sqlx::Pool<sqlx::#db_type_ident>) -> #function_output {
-            let mut qb = sqlx::QueryBuilder::new("UPDATE ");
+        pub async fn update<'e, E>(&self, db: E) -> #function_output
+        where
+            E: ::sqlx::#db_type_ident<'e>
+        {
+            let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
             qb.push(#table_name);
             qb.push(" SET ");
 
@@ -283,8 +295,11 @@ pub fn delete_fn(attr: &Attr) -> proc_macro2::TokenStream {
         None => panic!("No primary key field found"),
     };
     quote! {
-        pub async fn delete(&self, db: &sqlx::Pool<sqlx::#db_type_ident>) -> #function_output {
-            let mut qb = sqlx::QueryBuilder::new("DELETE FROM ");
+        pub async fn delete<'e, E>(&self, db: E) -> #function_output
+        where
+            E: ::sqlx::#db_type_ident<'e>
+        {
+            let mut qb = ::sqlx::QueryBuilder::new("DELETE FROM ");
             qb.push(#table_name);
             qb.push(" WHERE ");
             qb.push(#pk_name);
@@ -307,15 +322,15 @@ mod tests {
 
     #[cfg(feature = "mysql")]
     fn db_ident() -> Ident {
-        format_ident!("MySql")
+        format_ident!("MySqlExecutor")
     }
     #[cfg(feature = "postgres")]
     fn db_ident() -> Ident {
-        format_ident!("Postgres")
+        format_ident!("PgExecutor")
     }
     #[cfg(feature = "sqlite")]
     fn db_ident() -> Ident {
-        format_ident!("Sqlite")
+        format_ident!("SqliteExecutor")
     }
 
     mod simple_attr {
@@ -353,8 +368,11 @@ mod tests {
             let generated = clean_tokens(create_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn create(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<i64>{
-                    let mut qb = sqlx::QueryBuilder::new("INSERT INTO ");
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
                     qb.push("id, created_at, updated_at, last_name");
@@ -386,8 +404,11 @@ mod tests {
             let generated = clean_tokens(create_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn create(&self, db: &sqlx::Pool<sqlx::MySql>) -> sqlx::Result<i64>{
-                    let mut qb = sqlx::QueryBuilder::new("INSERT INTO ");
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
+                where
+                    E: ::sqlx::MySqlExecutor<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
                     qb.push("id, created_at, updated_at, last_name");
@@ -418,8 +439,11 @@ mod tests {
             let generated = clean_tokens(create_fn(&input(true)));
 
             let expected = clean_tokens(quote! {
-                pub async fn create(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<i64>{
-                    let mut qb = sqlx::QueryBuilder::new("INSERT INTO ");
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
                     qb.push("created_at, updated_at, last_name");
@@ -450,8 +474,11 @@ mod tests {
             let generated = clean_tokens(create_fn(&input(true)));
 
             let expected = clean_tokens(quote! {
-                pub async fn create(&self, db: &sqlx::Pool<sqlx::MySql>) -> sqlx::Result<i64>{
-                    let mut qb = sqlx::QueryBuilder::new("INSERT INTO ");
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
+                where
+                    E: ::sqlx::MySqlExecutor<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
                     qb.push("created_at, updated_at, last_name");
@@ -479,8 +506,11 @@ mod tests {
             let generated = clean_tokens(get_by_id_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn get_by_id(db: &sqlx::Pool<sqlx::#db_ident>, id: i64) -> sqlx::Result<Option<Self>> {
-                    let mut qb = sqlx::QueryBuilder::new("SELECT * FROM ");
+                pub async fn get_by_id<'e, E>(db: E, id: i64) -> ::sqlx::Result<Option<Self>>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
                     qb.push("contact");
                     qb.push(" WHERE ");
                     qb.push("id");
@@ -502,8 +532,11 @@ mod tests {
             let generated = clean_tokens(list_all_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn list_all(db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<Vec<Self>> {
-                    let mut qb = sqlx::QueryBuilder::new("SELECT * FROM ");
+                pub async fn list_all<'e, E>(db: E) -> ::sqlx::Result<Vec<Self>>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
                     qb.push("contact");
 
                     qb.build_query_as()
@@ -521,8 +554,11 @@ mod tests {
             let generated = clean_tokens(update_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn update(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<()> {
-                    let mut qb = sqlx::QueryBuilder::new("UPDATE ");
+                pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
                     qb.push("contact");
                     qb.push(" SET ");
 
@@ -573,8 +609,11 @@ mod tests {
             let generated = clean_tokens(delete_fn(&input(false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn delete(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<()> {
-                    let mut qb = sqlx::QueryBuilder::new("DELETE FROM ");
+                pub async fn delete<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("DELETE FROM ");
                     qb.push("contact");
                     qb.push(" WHERE ");
                     qb.push("id");
@@ -616,8 +655,11 @@ mod tests {
             let generated = clean_tokens(create_fn(&input));
 
             let expected = clean_tokens(quote! {
-                pub async fn create(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<Contact>{
-                    let mut qb = sqlx::QueryBuilder::new("INSERT INTO ");
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<Contact>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
                     qb.push("first_name, last_name, email");
@@ -676,8 +718,11 @@ mod tests {
             let generated = clean_tokens(update_fn(&input));
 
             let expected = clean_tokens(quote! {
-                pub async fn update(&self, db: &sqlx::Pool<sqlx::#db_ident>) -> sqlx::Result<Contact> {
-                    let mut qb = sqlx::QueryBuilder::new("UPDATE ");
+                pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<Contact>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
                     qb.push("contact");
                     qb.push(" SET ");
 
@@ -723,8 +768,11 @@ mod tests {
             let generated = clean_tokens(update_fn(&input));
 
             let expected = clean_tokens(quote! {
-                pub async fn update(&self, db: &sqlx::Pool<sqlx::MySql>) -> sqlx::Result<()> {
-                    let mut qb = sqlx::QueryBuilder::new("UPDATE ");
+                pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::MySqlExecutor<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
                     qb.push("contact");
                     qb.push(" SET ");
 

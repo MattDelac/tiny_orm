@@ -10,9 +10,9 @@ pub enum DbType {
 impl DbType {
     pub fn to_ident(&self) -> Ident {
         match self {
-            DbType::Postgres => format_ident!("Postgres"),
-            DbType::MySQL => format_ident!("MySql"),
-            DbType::Sqlite => format_ident!("Sqlite"),
+            DbType::Postgres => format_ident!("PgExecutor"),
+            DbType::MySQL => format_ident!("MySqlExecutor"),
+            DbType::Sqlite => format_ident!("SqliteExecutor"),
         }
     }
 }
