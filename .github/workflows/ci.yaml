@@ -18,6 +18,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
+      - name: Check the documentation of lib.rs is in the README
+        run: |
+          cargo install cargo-rdme
+          cargo rdme --check
       - name: Package the library
         run: cargo package --features sqlite
 

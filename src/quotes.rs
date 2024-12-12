@@ -1,8 +1,9 @@
 use quote::{format_ident, quote};
 
 use crate::{
-    attr::{Attr, Column, PrimaryKey, ReturnObject},
+    attr::Attr,
     database::{self, DbType},
+    types::{Column, PrimaryKey, ReturnObject},
 };
 
 #[derive(Debug, Clone)]
@@ -337,7 +338,7 @@ mod tests {
         use quote::format_ident;
         use syn::parse_quote;
 
-        use crate::attr::{Column, Operation, ParsedStruct};
+        use crate::types::{Column, Operation, ParsedStruct};
 
         use super::*;
 
@@ -636,7 +637,8 @@ mod tests {
 
     mod custom {
         use super::*;
-        use crate::attr::*;
+        use crate::attr::Attr;
+        use crate::types::*;
 
         #[cfg(not(feature = "mysql"))]
         #[test]
