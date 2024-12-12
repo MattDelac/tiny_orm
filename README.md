@@ -1,7 +1,11 @@
 [![Crates.io License](https://img.shields.io/crates/l/tiny-orm)](./LICENSE)
 [![ci](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/MattDelac/tiny_orm/actions/workflows/ci.yaml)
 [![Publish](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml/badge.svg)](https://github.com/MattDelac/tiny_orm/actions/workflows/publish.yaml)
+[![GitHub Repo stars](https://img.shields.io/github/stars/mattdelac/tiny_orm)](https://github.com/MattDelac/tiny_orm)
 [![Crates.io Version](https://img.shields.io/crates/v/tiny-orm)](https://crates.io/crates/tiny-orm)
+[![Crates.io MSRV](https://img.shields.io/crates/msrv/tiny-orm)](https://crates.io/crates/tiny-orm)
+[![Crates.io Size](https://img.shields.io/crates/size/tiny-orm)](https://crates.io/crates/tiny-orm)
+[![docs.rs](https://img.shields.io/docsrs/tiny-orm)](https://docs.rs/tiny-orm/0.2.0/tiny_orm/)
 
 
 # Tiny ORM
@@ -35,11 +39,16 @@ Add this to your `Cargo.toml`:
 tiny-orm = {version = "0.2.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
+### MSRV
+MSRV has been tested with `cargo-msrv find --features sqlite`. You can learn more about [cargo-msrv on their website](https://gribnau.dev/cargo-msrv/getting-started/quick-start.html).  
+Latest check ran on 0.2.0.
+
 ## License
 This project is licensed under [MIT] - see the [LICENSE](LICENSE) file for details.
 
 ## Usage
-### Basic
+<!-- cargo-rdme start -->
+
 ```rust
 use sqlx_tiny_orm::Table;
 
@@ -78,33 +87,33 @@ impl Todo {
 }
 ```
 
-## Examples
+### Examples
 More examples can be found in the [examples](./examples) directory.
 
-### Options
+#### Options
 The Table macro comes with a few options to give flexibility to the user
 
-#### At the Struct level
-- **table_name**: The name of the table in the database.  
-Default being a lower_case version of the Struct name. So `MyStruct` would have `my_struct` as a default `table_name`.
-- **only**: The methods that will only be available to that struct. Multiple values are comma separated.  
-Default is dependent on the struct name (see below).
-- **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated  
-Default would be nothing.
-- **all**: All the methods will be available to the struct. This will override the default values when none are provided.  
-Default none.
-- **return_object**: A custom object that would be returned instead of `Self`. Useful when creating or updating records with partial information.  
-Default is `Self` which corresponds to the current Strut.
+##### At the Struct level
+- **table_name**: The name of the table in the database.
+  Default being a lower_case version of the Struct name. So `MyStruct` would have `my_struct` as a default `table_name`.
+- **only**: The methods that will only be available to that struct. Multiple values are comma separated.
+  Default is dependent on the struct name (see below).
+- **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated
+  Default would be nothing.
+- **all**: All the methods will be available to the struct. This will override the default values when none are provided.
+  Default none.
+- **return_object**: A custom object that would be returned instead of `Self`. Useful when creating or updating records with partial information.
+  Default is `Self` which corresponds to the current Strut.
 
 _Note: `only` and `exclude` cannot be used together._
 
 By convention, if a struct name
-- Starts with `New` then it will automatically use the following arguments  
-`#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutNewAsPrefix", only = "create")]`
-- Starts with `Update` then it will automatically use the following arguments  
-`#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutUpdateAsPrefix", only = "update")]`
-- Everything else would be the equivalent of using the following  
-`#[tiny_orm(table_name = "table_name", return_object = "Self", exclude = "create,update")]`
+- Starts with `New` then it will automatically use the following arguments
+  `#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutNewAsPrefix", only = "create")]`
+- Starts with `Update` then it will automatically use the following arguments
+  `#[tiny_orm(table_name = "table_name_from_return_object", return_object = "NameWithoutUpdateAsPrefix", only = "update")]`
+- Everything else would be the equivalent of using the following
+  `#[tiny_orm(table_name = "table_name", return_object = "Self", exclude = "create,update")]`
 
 Example
 ```rust
@@ -160,7 +169,7 @@ impl UpdateTodo {
 }
 ```
 
-#### At the field level
+##### At the field level
 - **primary_key**: The field that would be used as a primary key for the queries. For some methods the primary key is mandatory (eg: `get_by_id()`). If not specified, it will default to `id` if part of the struct.
 - **primary_key(auto)**: The field that would be used as a primary key for the queries. When "auto" is set, it will skip the column and returns it during the `create()` method since it will be auto generated by the database itself.
 
@@ -196,6 +205,14 @@ impl Todo {
     }
 }
 ```
+
+<!-- cargo-rdme end -->
+
+## Migrations
+### From 0.1.* to 0.2.*
+In 0.2.0, the API was stabilized with the fact that
+- The `update()` and `delete()` methods now always return an empty Ok response `sqlx::Result<()>`
+- The `create()` method always returns the primary key except when the return type is of another object (eg: `NewTodo` has a return_object of `Todo`)
 
 ## Roadmap
 Goal of TinyORM is to stay tiny. That being said there are still a few things I would like to have
