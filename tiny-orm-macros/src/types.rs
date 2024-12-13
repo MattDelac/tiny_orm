@@ -137,10 +137,6 @@ impl TableName {
     pub fn new(input: String) -> Self {
         Self(input.to_case(Case::Snake))
     }
-
-    pub fn to_ident(&self) -> Ident {
-        Ident::new(&self.0, Span::call_site())
-    }
 }
 
 impl fmt::Display for TableName {

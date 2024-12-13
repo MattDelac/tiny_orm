@@ -1,3 +1,6 @@
+[workspace]
+members = ["tiny-orm-core", "tiny-orm-macros"]
+
 [package]
 name = "tiny-orm"
 version = "0.2.0"
@@ -17,21 +20,16 @@ exclude = [
     ".github/*",
 ]
 
-[lib]
-proc-macro = true
-
 [dependencies]
-syn = { version = "2.0", features = ["full", "extra-traits"] }
-quote = "1.0"
-proc-macro2 = "1.0"
-convert_case = "<1.0"
 sqlx = { version = ">=0.7, <1.0", default-features = false }
+tiny-orm-core = { path = "./tiny-orm-core", version = "0.1.0" }
+tiny-orm-macros = { path = "./tiny-orm-macros", version = "0.1.0", features = [] }
 
 [features]
 default = []
-sqlite = ["sqlx/sqlite"]
-postgres = ["sqlx/postgres"]
-mysql = ["sqlx/mysql"]
+sqlite = ["tiny-orm-macros/sqlite"]
+postgres = ["tiny-orm-macros/postgres"]
+mysql = ["tiny-orm-macros/mysql"]
 
 [dev-dependencies]
 sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "derive"] }
