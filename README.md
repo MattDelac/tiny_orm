@@ -50,7 +50,8 @@ This project is licensed under [MIT] - see the [LICENSE](LICENSE) file for detai
 <!-- cargo-rdme start -->
 
 ```rust
-use sqlx_tiny_orm::Table;
+use sqlx::{FromRow, Row, types::chrono::{DateTime, Utc}};
+use tiny_orm::Table;
 
 #[derive(Debug, FromRow, Table, Clone)]
 #[tiny_orm(all)]

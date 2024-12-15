@@ -1,5 +1,4 @@
 use convert_case::{Case, Casing};
-use proc_macro2::Span;
 use quote::format_ident;
 use std::{fmt, str::FromStr};
 use syn::{Ident, Type};
