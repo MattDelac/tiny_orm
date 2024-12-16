@@ -368,7 +368,7 @@ mod tests {
         use super::*;
 
         fn input(auto_increment: bool) -> Attr {
-            let mut primary_key = Column::new("id".to_string(), parse_quote!(i64));
+            let mut primary_key = Column::new("id", parse_quote!(i64));
             primary_key.set_primary_key();
             if auto_increment {
                 primary_key.set_auto_increment();
@@ -383,9 +383,9 @@ mod tests {
                 primary_key: Some(primary_key.clone()),
                 columns: vec![
                     primary_key,
-                    Column::new("created_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("updated_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("last_name".to_string(), parse_quote!(String)),
+                    Column::new("created_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("updated_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("last_name", parse_quote!(String)),
                 ],
                 operations: Operation::all(),
             }
@@ -699,9 +699,9 @@ mod tests {
                 parsed_struct,
                 primary_key: None,
                 columns: vec![
-                    Column::new("first_name".to_string(), parse_quote!(String)),
-                    Column::new("last_name".to_string(), parse_quote!(String)),
-                    Column::new("email".to_string(), parse_quote!(String)),
+                    Column::new("first_name", parse_quote!(String)),
+                    Column::new("last_name", parse_quote!(String)),
+                    Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
             };
@@ -770,9 +770,9 @@ mod tests {
                 parsed_struct,
                 primary_key: None,
                 columns: vec![
-                    Column::new("first_name".to_string(), parse_quote!(SetOption<String>)),
-                    Column::new("last_name".to_string(), parse_quote!(SetOption<String>)),
-                    Column::new("email".to_string(), parse_quote!(String)),
+                    Column::new("first_name", parse_quote!(SetOption<String>)),
+                    Column::new("last_name", parse_quote!(SetOption<String>)),
+                    Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
             };
@@ -826,15 +826,12 @@ mod tests {
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
 
-            let mut primary_key = Column::new("custom_id".to_string(), parse_quote!(i64));
+            let mut primary_key = Column::new("custom_id", parse_quote!(i64));
             primary_key.set_primary_key();
             let input = Attr {
                 parsed_struct,
                 primary_key: Some(primary_key.clone()),
-                columns: vec![
-                    primary_key,
-                    Column::new("first_name".to_string(), parse_quote!(String)),
-                ],
+                columns: vec![primary_key, Column::new("first_name", parse_quote!(String))],
                 operations: vec![Operation::Update],
             };
 
@@ -882,7 +879,7 @@ mod tests {
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let input = Attr {
                 parsed_struct,
-                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
+                primary_key: Some(Column::new("custom_id", parse_quote!(i64))),
                 field_names: vec!["custom_id".to_string(), "first_name".to_string()],
                 operations: vec![Operation::Update],
             };

@@ -146,7 +146,7 @@ impl Parser {
                 Fields::Named(fields) => {
                     for field in fields.named.iter() {
                         let mut column = Column::new(
-                            field
+                            &field
                                 .ident
                                 .as_ref()
                                 .expect("Field ident is expected to get its name")
@@ -222,7 +222,7 @@ mod tests {
 
         #[test]
         fn test_set_auto_increment() {
-            let mut column = Column::new("col_name".to_string(), parse_quote!(i32));
+            let mut column = Column::new("col_name", parse_quote!(i32));
             assert!(!column.auto_increment);
             column.set_auto_increment();
             assert!(column.auto_increment);
@@ -544,16 +544,16 @@ mod tests {
             };
 
             let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
-            let mut expected_pk = Column::new("id".to_string(), parse_quote!(i64));
+            let mut expected_pk = Column::new("id", parse_quote!(i64));
             expected_pk.set_primary_key();
             assert_eq!(primary_key, Some(expected_pk.clone()));
             assert_eq!(
                 field_names,
                 vec![
                     expected_pk,
-                    Column::new("created_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("updated_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("last_name".to_string(), parse_quote!(String))
+                    Column::new("created_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("updated_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("last_name", parse_quote!(String))
                 ]
             );
         }
@@ -570,7 +570,7 @@ mod tests {
             assert_eq!(primary_key, None);
             assert_eq!(
                 field_names,
-                vec![Column::new("last_name".to_string(), parse_quote!(String))]
+                vec![Column::new("last_name", parse_quote!(String))]
             );
         }
 
@@ -587,16 +587,16 @@ mod tests {
             };
 
             let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
-            let mut expected_pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            let mut expected_pk = Column::new("custom_key", parse_quote!(u32));
             expected_pk.set_primary_key();
             assert_eq!(primary_key, Some(expected_pk.clone()));
             assert_eq!(
                 field_names,
                 vec![
                     expected_pk,
-                    Column::new("inserted_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("something_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("last_name".to_string(), parse_quote!(String))
+                    Column::new("inserted_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("something_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("last_name", parse_quote!(String))
                 ]
             );
         }
@@ -614,7 +614,7 @@ mod tests {
             };
 
             let (primary_key, _) = Parser::parse_fields_macro_arguments(input.data);
-            let mut pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            let mut pk = Column::new("custom_key", parse_quote!(u32));
             pk.set_primary_key();
             pk.set_auto_increment();
             assert_eq!(primary_key, Some(pk));
@@ -636,19 +636,19 @@ mod tests {
             };
 
             let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
-            let mut expect_pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            let mut expect_pk = Column::new("custom_key", parse_quote!(u32));
             expect_pk.set_primary_key();
             assert_eq!(primary_key, Some(expect_pk.clone()));
             assert_eq!(
                 field_names,
                 vec![
                     expect_pk,
-                    Column::new("inserted_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("something_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("id".to_string(), parse_quote!(u32)),
-                    Column::new("created_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("updated_at".to_string(), parse_quote!(DateTime<Utc>)),
-                    Column::new("last_name".to_string(), parse_quote!(String))
+                    Column::new("inserted_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("something_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("id", parse_quote!(u32)),
+                    Column::new("created_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("updated_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("last_name", parse_quote!(String))
                 ]
             );
         }
@@ -669,7 +669,7 @@ mod tests {
             };
 
             let (primary_key, _) = Parser::parse_fields_macro_arguments(input.data);
-            let mut pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            let mut pk = Column::new("custom_key", parse_quote!(u32));
             pk.set_primary_key();
             pk.set_auto_increment();
             assert_eq!(primary_key, Some(pk));
@@ -697,7 +697,7 @@ mod tests {
 
             let result = Attr::parse(input);
             let parsed_struct = ParsedStruct::new(&format_ident!("Contact"), None, None);
-            let mut primary_key = Column::new("id".to_string(), parse_quote!(i64));
+            let mut primary_key = Column::new("id", parse_quote!(i64));
             primary_key.set_primary_key();
             assert_eq!(
                 result,
@@ -706,9 +706,9 @@ mod tests {
                     primary_key: Some(primary_key.clone()),
                     columns: vec![
                         primary_key,
-                        Column::new("created_at".to_string(), parse_quote!(DateTime<Utc>)),
-                        Column::new("updated_at".to_string(), parse_quote!(DateTime<Utc>)),
-                        Column::new("last_name".to_string(), parse_quote!(String))
+                        Column::new("created_at", parse_quote!(DateTime<Utc>)),
+                        Column::new("updated_at", parse_quote!(DateTime<Utc>)),
+                        Column::new("last_name", parse_quote!(String))
                     ],
                     operations: vec![Operation::Get, Operation::List, Operation::Delete],
                 }
@@ -734,7 +734,7 @@ mod tests {
                 Some("specific_table".to_string()),
                 Some(format_ident!("AnotherObject")),
             );
-            let mut primary_key = Column::new("custom_pk".to_string(), parse_quote!(i64));
+            let mut primary_key = Column::new("custom_pk", parse_quote!(i64));
             primary_key.set_primary_key();
             assert_eq!(
                 result,
@@ -743,9 +743,9 @@ mod tests {
                     primary_key: Some(primary_key.clone()),
                     columns: vec![
                         primary_key,
-                        Column::new("custom_created_at".to_string(), parse_quote!(DateTime<Utc>)),
-                        Column::new("custom_updated_at".to_string(), parse_quote!(DateTime<Utc>)),
-                        Column::new("last_name".to_string(), parse_quote!(String))
+                        Column::new("custom_created_at", parse_quote!(DateTime<Utc>)),
+                        Column::new("custom_updated_at", parse_quote!(DateTime<Utc>)),
+                        Column::new("last_name", parse_quote!(String))
                     ],
                     operations: vec![Operation::Create],
                 }

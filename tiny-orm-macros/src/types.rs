@@ -1,7 +1,12 @@
 use convert_case::{Case, Casing};
+use once_cell::sync::Lazy;
 use quote::{format_ident, ToTokens};
+use regex::Regex;
 use std::{fmt, str::FromStr};
 use syn::{Ident, Type};
+
+static FIND_SET_OPTION_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^(?:tiny_orm\s*::\s*)*SetOption\s*<").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StructType {
@@ -118,9 +123,9 @@ pub struct Column {
     pub primary_key: bool,
 }
 impl Column {
-    pub fn new(name: String, _type: Type) -> Self {
+    pub fn new(name: &str, _type: Type) -> Self {
         Self {
-            name: name.clone(),
+            name: name.to_string(),
             ident: format_ident!("{}", name),
             _type,
             auto_increment: false,
@@ -134,15 +139,7 @@ impl Column {
         self.primary_key = true;
     }
     pub fn use_set_options(&self) -> bool {
-        self._type
-            .to_token_stream()
-            .to_string()
-            .starts_with("SetOption")
-            || self
-                ._type
-                .to_token_stream()
-                .to_string()
-                .starts_with("tiny_orm::SetOption")
+        FIND_SET_OPTION_REGEX.is_match(&self._type.to_token_stream().to_string())
     }
 }
 
@@ -173,9 +170,37 @@ mod tests {
 
     #[test]
     fn test_set_auto_increment() {
-        let mut column = Column::new("col_name".to_string(), parse_quote!(i32));
+        let mut column = Column::new("col_name", parse_quote!(i32));
         assert!(!column.auto_increment);
         column.set_auto_increment();
         assert!(column.auto_increment);
+    }
+
+    mod column {
+        use super::*;
+
+        #[test]
+        fn test_use_set_options_true() {
+            let col_name = "col_name";
+            assert!(
+                Column::new(col_name, parse_quote!(tiny_orm::SetOption<i32>)).use_set_options()
+            );
+            assert!(Column::new(col_name, parse_quote!(SetOption<String>)).use_set_options());
+            assert!(Column::new(col_name, parse_quote!(SetOption<!>)).use_set_options());
+            assert!(Column::new(col_name, parse_quote!(SetOption<Option<bool>>)).use_set_options());
+        }
+        #[test]
+        fn test_use_set_options_false() {
+            let col_name = "col_name";
+            assert!(!Column::new(col_name, parse_quote!(Option<i32>)).use_set_options());
+            assert!(!Column::new(col_name, parse_quote!(String)).use_set_options());
+            assert!(!Column::new(col_name, parse_quote!(!)).use_set_options());
+            assert!(!Column::new(col_name, parse_quote!(bool)).use_set_options());
+            assert!(!Column::new(col_name, parse_quote!(MyStruct<SetOption>)).use_set_options());
+            assert!(!Column::new(col_name, parse_quote!(Option<SetOption>)).use_set_options());
+            assert!(
+                !Column::new(col_name, parse_quote!(Option<SetOption<bool>>)).use_set_options()
+            );
+        }
     }
 }

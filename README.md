@@ -39,7 +39,9 @@ Why TinyORM over another one?
 
 - Minimal set of dependencies (fast compile time)  
 -- [SQLx](https://github.com/launchbadge/sqlx)  
--- [convert_case](https://github.com/rutrum/convert-case)
+-- [convert_case](https://github.com/rutrum/convert-case)  
+-- [regex](https://crates.io/crates/regex)  
+-- [lazy_static](https://crates.io/crates/https://crates.io/crates/lazy_static)  
 
 - Intuitive with smart defaults and flexible
 
