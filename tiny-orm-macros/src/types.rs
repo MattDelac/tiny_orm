@@ -1,5 +1,5 @@
 use convert_case::{Case, Casing};
-use quote::format_ident;
+use quote::{format_ident, ToTokens};
 use std::{fmt, str::FromStr};
 use syn::{Ident, Type};
 
@@ -115,6 +115,7 @@ pub struct Column {
     pub ident: Ident,
     pub _type: Type,
     pub auto_increment: bool,
+    pub primary_key: bool,
 }
 impl Column {
     pub fn new(name: String, _type: Type) -> Self {
@@ -123,10 +124,25 @@ impl Column {
             ident: format_ident!("{}", name),
             _type,
             auto_increment: false,
+            primary_key: false,
         }
     }
     pub fn set_auto_increment(&mut self) {
         self.auto_increment = true;
+    }
+    pub fn set_primary_key(&mut self) {
+        self.primary_key = true;
+    }
+    pub fn use_set_options(&self) -> bool {
+        self._type
+            .to_token_stream()
+            .to_string()
+            .starts_with("SetOption")
+            || self
+                ._type
+                .to_token_stream()
+                .to_string()
+                .starts_with("tiny_orm::SetOption")
     }
 }
 
@@ -147,7 +163,6 @@ impl fmt::Display for TableName {
 pub type StructName = Ident;
 pub type PrimaryKey = Column;
 pub type ReturnObject = Ident;
-pub type FieldNames = Vec<String>;
 pub type Operations = Vec<Operation>;
 
 #[cfg(test)]

@@ -14,6 +14,17 @@ A minimal ORM for CRUD operations. Built on top of SQLx and with its QueryBuilde
 
 This library is the one I wished I had when I built a project in Rust in production and did not want a heavy ORM.
 
+## Installation
+```sh
+cargo install tiny-orm -F postgres # sqlite or mysql
+```
+
+Or add this to your `Cargo.toml`:
+```toml
+[dependencies]
+tiny-orm = {version = "0.2.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
+```
+
 ## Principles & advantages of TinyORM
 The goals of this library are
 - To have the least amount of dependencies
@@ -31,13 +42,6 @@ Why TinyORM over another one?
 -- [convert_case](https://github.com/rutrum/convert-case)
 
 - Intuitive with smart defaults and flexible
-
-## Installation
-Add this to your `Cargo.toml`:
-```toml
-[dependencies]
-tiny-orm = {version = "0.2.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
-```
 
 ### MSRV
 MSRV has been tested with `cargo-msrv find --features sqlite`. You can learn more about [cargo-msrv on their website](https://gribnau.dev/cargo-msrv/getting-started/quick-start.html).  
@@ -188,12 +192,13 @@ struct Todo {
 ```
 
 ```rust
+use tiny_orm::{Table, SetOption};
 #[derive(Debug, FromRow, Table, Clone)]
 struct Todo {
     #[tiny_orm(primary_key(auto))]
     id: i64,
-    description: String,
-    done: bool
+    description: SetOption<String>,
+    done: SetOption<bool>
 }
 ```
 

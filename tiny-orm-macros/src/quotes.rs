@@ -181,38 +181,62 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let returning_statement = return_type.clone().returning_statement();
     let query_builder_execution = return_type.query_builder_execution();
 
-    let field_iter = attr.field_names.iter().map(|f| format_ident!("{}", f));
+    let mut field_str_quote = Vec::new();
+    let mut field_values_quote = Vec::new();
 
-    let field_idents: Vec<syn::Ident> = match attr.primary_key {
-        None
-        | Some(Column {
-            auto_increment: false,
-            ..
-        }) => field_iter.collect(),
-        Some(ref primary_key) => field_iter.filter(|x| x != &primary_key.ident).collect(),
-    };
-    let fields_str = field_idents
-        .clone()
-        .into_iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>()
-        .join(", ");
+    for column in attr.columns.iter() {
+        if column.auto_increment {
+            continue;
+        }
+        let str_quote = if column.use_set_options() {
+            let column_ident = &column.ident;
+            let column_name = &column.name;
+            quote! {
+                if self.#column_ident.is_set() {
+                    fields_str.push(#column_name);
+                }
+            }
+        } else {
+            let column_name = &column.name;
+            quote! {
+                fields_str.push(#column_name);
+            }
+        };
+        field_str_quote.push(str_quote);
+
+        let value_quote = if column.use_set_options() {
+            let column_ident = &column.ident;
+            quote! {
+                if let SetOption::Set(v) = &self.#column_ident {
+                    separated.push_bind(v);
+                }
+            }
+        } else {
+            let column_ident = &column.ident;
+            quote! {
+                separated.push_bind(&self.#column_ident);
+            }
+        };
+        field_values_quote.push(value_quote);
+    }
 
     quote! {
         pub async fn create<'e, E>(&self, db: E) -> #function_output
         where
             E: ::sqlx::#db_type_ident<'e>
         {
+            let mut fields_str = Vec::new();
+
+            #(#field_str_quote)*
+
             let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
             qb.push(#table_name);
             qb.push(" (");
-            qb.push(#fields_str);
+            qb.push(fields_str.join(", "));
             qb.push(") VALUES (");
 
             let mut separated = qb.separated(", ");
-            #(
-                separated.push_bind(&self.#field_idents);
-            )*
+            #(#field_values_quote)*
             separated.push_unseparated(")");
 
             #returning_statement
@@ -242,10 +266,11 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
         None => panic!("No primary key field found"),
     };
     let update_fields = attr
-        .field_names
+        .columns
         .clone()
         .into_iter()
-        .filter(|f| f != pk_name)
+        .filter(|c| !c.primary_key)
+        .map(|c| c.name)
         .collect::<Vec<_>>();
 
     let update_field_idents: Vec<syn::Ident> = update_fields
@@ -344,6 +369,7 @@ mod tests {
 
         fn input(auto_increment: bool) -> Attr {
             let mut primary_key = Column::new("id".to_string(), parse_quote!(i64));
+            primary_key.set_primary_key();
             if auto_increment {
                 primary_key.set_auto_increment();
             };
@@ -354,12 +380,12 @@ mod tests {
             );
             Attr {
                 parsed_struct,
-                primary_key: Some(primary_key),
-                field_names: vec![
-                    "id".to_string(),
-                    "created_at".to_string(),
-                    "updated_at".to_string(),
-                    "last_name".to_string(),
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("created_at".to_string(), parse_quote!(DateTime<Utc>)),
+                    Column::new("updated_at".to_string(), parse_quote!(DateTime<Utc>)),
+                    Column::new("last_name".to_string(), parse_quote!(String)),
                 ],
                 operations: Operation::all(),
             }
@@ -376,10 +402,16 @@ mod tests {
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("id");
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("id, created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -412,10 +444,16 @@ mod tests {
                 where
                     E: ::sqlx::MySqlExecutor<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("id");
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("id, created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -447,10 +485,15 @@ mod tests {
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -482,10 +525,15 @@ mod tests {
                 where
                     E: ::sqlx::MySqlExecutor<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -643,15 +691,17 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_custom_output_create() {
+            use syn::parse_quote;
+
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let input = Attr {
                 parsed_struct,
                 primary_key: None,
-                field_names: vec![
-                    "first_name".to_string(),
-                    "last_name".to_string(),
-                    "email".to_string(),
+                columns: vec![
+                    Column::new("first_name".to_string(), parse_quote!(String)),
+                    Column::new("last_name".to_string(), parse_quote!(String)),
+                    Column::new("email".to_string(), parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
             };
@@ -663,10 +713,15 @@ mod tests {
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("first_name");
+                    fields_str.push("last_name");
+                    fields_str.push("email");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("first_name, last_name, email");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -706,14 +761,80 @@ mod tests {
 
         #[cfg(not(feature = "mysql"))]
         #[test]
+        fn test_setoption_create() {
+            use syn::parse_quote;
+
+            let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
+            let input = Attr {
+                parsed_struct,
+                primary_key: None,
+                columns: vec![
+                    Column::new("first_name".to_string(), parse_quote!(SetOption<String>)),
+                    Column::new("last_name".to_string(), parse_quote!(SetOption<String>)),
+                    Column::new("email".to_string(), parse_quote!(String)),
+                ],
+                operations: vec![Operation::Create],
+            };
+
+            let generated = clean_tokens(create_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<Contact>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut fields_str = Vec::new();
+                    if self.first_name.is_set() {
+                        fields_str.push("first_name");
+                    }
+                    if self.last_name.is_set() {
+                        fields_str.push("last_name");
+                    }
+                    fields_str.push("email");
+
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
+                    qb.push("contact");
+                    qb.push(" (");
+                    qb.push(fields_str.join(", "));
+                    qb.push(") VALUES (");
+
+                    let mut separated = qb.separated(", ");
+                    if let SetOption::Set(v) = &self.first_name {
+                        separated.push_bind(v);
+                    }
+                    if let SetOption::Set(v) = &self.last_name {
+                        separated.push_bind(v);
+                    }
+                    separated.push_bind(&self.email);
+                    separated.push_unseparated(")");
+
+                    qb.push(" RETURNING * ");
+
+                    qb.build_query_as()
+                    .fetch_one(db)
+                    .await
+                }
+            });
+            assert_eq!(generated, expected);
+        }
+
+        #[cfg(not(feature = "mysql"))]
+        #[test]
         fn test_custom_output_update() {
             use syn::parse_quote;
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
+
+            let mut primary_key = Column::new("custom_id".to_string(), parse_quote!(i64));
+            primary_key.set_primary_key();
             let input = Attr {
                 parsed_struct,
-                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
-                field_names: vec!["custom_id".to_string(), "first_name".to_string()],
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("first_name".to_string(), parse_quote!(String)),
+                ],
                 operations: vec![Operation::Update],
             };
 

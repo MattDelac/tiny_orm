@@ -1,3 +1,7 @@
+use sqlx::decode::Decode;
+use sqlx::error::BoxDynError;
+use sqlx::{Database, Type, ValueRef};
+
 /// tiny_orm::SetOption is an enum that behave similarly to `Option` in the sense that there are only two variants.
 /// The goal is to easily differentiate between an Option type and a SetOption type.
 /// So that it is possible to have a struct like the following
@@ -97,11 +101,10 @@ impl<T> SetOption<T> {
     /// assert!(!not_set.is_set());
     /// ```
     pub fn is_set(&self) -> bool {
-        let var_name = match self {
+        match self {
             SetOption::Set(_) => true,
             SetOption::NotSet => false,
-        };
-        var_name
+        }
     }
 
     /// `is_not_set()` returns true if the variant is `NotSet`
@@ -123,5 +126,84 @@ impl<T> SetOption<T> {
             SetOption::Set(_) => false,
             SetOption::NotSet => true,
         }
+    }
+}
+
+/// Implements database decoding for SetOption<T>.
+/// This allows automatic conversion from database values to SetOption<T>.
+///
+/// # Examples
+/// ```rust
+/// # use sqlx::SqlitePool;
+/// # use tiny_orm_core::SetOption;
+/// # use sqlx::FromRow;
+/// #
+/// #[derive(FromRow)]
+/// struct TestRecord {
+///     value: SetOption<i32>,
+/// }
+///
+/// # tokio_test::block_on(async {
+/// let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+///
+/// # sqlx::query(
+/// #    "CREATE TABLE test (value INTEGER)"
+/// # ).execute(&pool).await.unwrap();
+///
+/// # sqlx::query(
+/// #    "INSERT INTO test (value) VALUES (?)"
+/// # )
+/// # .bind(42)
+/// # .execute(&pool).await.unwrap();
+///
+/// // Test with a value
+/// let record: TestRecord = sqlx::query_as("SELECT value FROM test")
+///     .fetch_one(&pool)
+///     .await
+///     .unwrap();
+///
+/// assert_eq!(record.value, SetOption::Set(42));
+///
+/// // Test NULL value
+/// # sqlx::query("DELETE FROM test").execute(&pool).await.unwrap();
+/// # sqlx::query(
+/// #    "INSERT INTO test (value) VALUES (?)"
+/// # )
+/// # .bind(None::<i32>)
+/// # .execute(&pool).await.unwrap();
+///
+/// let record: TestRecord = sqlx::query_as("SELECT value FROM test")
+///     .fetch_one(&pool)
+///     .await
+///     .unwrap();
+///
+/// assert_eq!(record.value, SetOption::NotSet);
+/// # });
+/// ```
+impl<'r, DB, T> Decode<'r, DB> for SetOption<T>
+where
+    DB: Database,
+    T: Decode<'r, DB>,
+{
+    fn decode(value: <DB as Database>::ValueRef<'r>) -> Result<Self, BoxDynError> {
+        if value.is_null() {
+            return Ok(SetOption::NotSet);
+        }
+
+        Ok(SetOption::Set(T::decode(value)?))
+    }
+}
+
+impl<DB, T> Type<DB> for SetOption<T>
+where
+    DB: Database,
+    T: Type<DB>,
+{
+    fn type_info() -> <DB as Database>::TypeInfo {
+        T::type_info()
+    }
+
+    fn compatible(ty: &<DB as Database>::TypeInfo) -> bool {
+        T::compatible(ty)
     }
 }
