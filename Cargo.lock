@@ -1463,12 +1463,22 @@ dependencies = [
 name = "tiny-orm"
 version = "0.2.0"
 dependencies = [
+ "sqlx",
+ "tiny-orm-macros",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "tiny-orm-macros"
+version = "0.1.0"
+dependencies = [
  "convert_case",
  "proc-macro2",
  "quote",
  "sqlx",
  "syn",
- "tiny-orm",
+ "tiny-orm-macros",
  "tokio",
  "uuid",
 ]

@@ -1,5 +1,6 @@
 //! ```rust
-//! use sqlx_tiny_orm::Table;
+//! use sqlx::{FromRow, Row, types::chrono::{DateTime, Utc}};
+//! use tiny_orm::Table;
 //!
 //! #[derive(Debug, FromRow, Table, Clone)]
 //! #[tiny_orm(all)]
@@ -13,7 +14,7 @@
 //! ```
 //!
 //! The code above would generate the following methods on the Todo object
-//! ```rust
+//! ```rust,ignore
 //! impl Todo {
 //!     pub fn get_by_id(pool: &DbPool, id: &i32) -> sqlx::Result<Self> {
 //!         // Get a specific record for a given ID
@@ -66,6 +67,9 @@
 //!
 //! Example
 //! ```rust
+//! # use tiny_orm::Table;
+//! # use uuid::Uuid;
+//! # use sqlx::{FromRow, types::chrono::{DateTime, Utc}};
 //! #[derive(Debug, FromRow, Table, Clone)]
 //! // #[tiny_orm(table_name = "todo", return_object = "Self", exclude = "create,update")]
 //! struct Todo {
@@ -93,7 +97,7 @@
 //! ```
 //! The above takes the assumption that some columns can be nullable and others are auto generated (eg an ID column that would be auto increment).
 //! Thus it would generate the following
-//! ```rust
+//! ```rust,ignore
 //! impl NewTodo {
 //!     pub fn create(&self, pool: &DbPool) -> sqlx::Result<Todo> {
 //!         // Use the NewTodo object to create a record
@@ -126,6 +130,9 @@
 //!
 //! Example
 //! ```rust
+//! # use tiny_orm::Table;
+//! # use uuid::Uuid;
+//! # use sqlx::FromRow;
 //! #[derive(Debug, FromRow, Table, Clone)]
 //! struct Todo {
 //!     #[tiny_orm(primary_key)]
@@ -136,17 +143,19 @@
 //! ```
 //!
 //! ```rust
+//! use tiny_orm::Table;
+//! # use sqlx::FromRow;
 //! #[derive(Debug, FromRow, Table, Clone)]
 //! struct Todo {
 //!     #[tiny_orm(primary_key(auto))]
 //!     id: i64,
-//!     description: String,
-//!     done: bool
+//!     description: Option<String>,
+//!     done: Option<bool>
 //! }
 //! ```
 //!
 //! Thus it would generate the following
-//! ```rust
+//! ```rust,ignore
 //! impl Todo {
 //!     pub fn create(&self, pool: &DbPool) -> sqlx::Result<Uuid> { // or i64 depending on the example
 //!         // Create the Todo object as a record in
@@ -155,70 +164,4 @@
 //! }
 //! ```
 
-#![allow(dead_code)]
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
-use types::Operation;
-
-mod attr;
-mod database;
-mod quotes;
-mod types;
-
-#[proc_macro_derive(Table, attributes(tiny_orm))]
-pub fn derive_tiny_orm(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let attr = attr::Attr::parse(input);
-
-    let expanded = generate_impl(&attr);
-
-    #[cfg(test)]
-    println!("Generated code:\n{}", expanded);
-
-    TokenStream::from(expanded)
-}
-
-fn generate_impl(attr: &attr::Attr) -> proc_macro2::TokenStream {
-    let struct_name = attr.parsed_struct.name.clone();
-
-    let get_impl = if attr.operations.contains(&Operation::Get) {
-        quotes::get_by_id_fn(attr)
-    } else {
-        quote! {}
-    };
-
-    let list_impl = if attr.operations.contains(&Operation::List) {
-        quotes::list_all_fn(attr)
-    } else {
-        quote! {}
-    };
-
-    let create_impl = if attr.operations.contains(&Operation::Create) {
-        quotes::create_fn(attr)
-    } else {
-        quote! {}
-    };
-
-    let update_impl = if attr.operations.contains(&Operation::Update) {
-        quotes::update_fn(attr)
-    } else {
-        quote! {}
-    };
-
-    let delete_impl = if attr.operations.contains(&Operation::Delete) {
-        quotes::delete_fn(attr)
-    } else {
-        quote! {}
-    };
-
-    quote! {
-        impl #struct_name {
-            #get_impl
-            #list_impl
-            #create_impl
-            #update_impl
-            #delete_impl
-        }
-    }
-}
+pub use tiny_orm_macros::*;
