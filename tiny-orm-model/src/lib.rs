@@ -7,7 +7,7 @@ use sqlx::{Database, Encode, Type, ValueRef};
 /// The goal is to easily differentiate between an Option type and a SetOption type.
 /// So that it is possible to have a struct like the following
 /// ```rust
-/// # use tiny_orm_core::SetOption;
+/// # use tiny_orm_model::SetOption;
 ///
 /// struct Todo {
 ///     id: SetOption<i64>,
@@ -26,7 +26,7 @@ pub enum SetOption<T> {
 
 /// Implement `From` for `SetOption` to allow for easy conversion from a value to a `SetOption`.
 /// ```rust
-/// # use tiny_orm_core::SetOption;
+/// # use tiny_orm_model::SetOption;
 /// let set_option: SetOption<i32> = 1.into();
 /// assert_eq!(set_option, SetOption::Set(1));
 /// ```
@@ -41,13 +41,13 @@ impl<T> From<T> for SetOption<T> {
 ///
 /// # Examples
 /// ```rust
-/// # use tiny_orm_core::SetOption;
+/// # use tiny_orm_model::SetOption;
 /// let set_option: SetOption<i32> = 1.into();
 /// let result: Result<i32, _> = set_option.into();
 /// assert_eq!(result, Ok(1));
 /// ```
 /// ```rust
-/// # use tiny_orm_core::SetOption;
+/// # use tiny_orm_model::SetOption;
 /// let not_set: SetOption<i32> = SetOption::NotSet;
 /// let result: Result<i32, _> = not_set.into();
 /// assert_eq!(result, Err("Cannot convert NotSet variant to value"));
@@ -68,14 +68,14 @@ impl<T> SetOption<T> {
     ///
     /// # Examples
     /// ```rust
-    /// # use tiny_orm_core::SetOption;
+    /// # use tiny_orm_model::SetOption;
     /// let set = SetOption::Set(1);
     /// let inner = set.inner();
     /// assert_eq!(inner, Some(1));
     /// ```
     ///
     /// ```rust
-    /// # use tiny_orm_core::SetOption;
+    /// # use tiny_orm_model::SetOption;
     /// let not_set: SetOption<i32> = SetOption::NotSet;
     /// let inner = not_set.inner();
     /// assert_eq!(inner, None);
@@ -91,13 +91,13 @@ impl<T> SetOption<T> {
     ///
     /// # Examples
     /// ```rust
-    /// # use tiny_orm_core::SetOption;
+    /// # use tiny_orm_model::SetOption;
     /// let set = SetOption::Set(1);
     /// assert!(set.is_set());
     /// ```
     ///
     /// ```rust
-    /// # use tiny_orm_core::SetOption;
+    /// # use tiny_orm_model::SetOption;
     /// let not_set: SetOption<i32> = SetOption::NotSet;
     /// assert!(!not_set.is_set());
     /// ```
@@ -112,13 +112,13 @@ impl<T> SetOption<T> {
     ///
     /// # Examples
     /// ```rust
-    /// # use tiny_orm_core::SetOption;
+    /// # use tiny_orm_model::SetOption;
     /// let set = SetOption::Set(1);
     /// assert!(!set.is_not_set());
     /// ```
     ///
     /// ```rust
-    /// # use tiny_orm_core::SetOption;
+    /// # use tiny_orm_model::SetOption;
     /// let not_set: SetOption<i32> = SetOption::NotSet;
     /// assert!(not_set.is_not_set());
     /// ```
@@ -136,7 +136,7 @@ impl<T> SetOption<T> {
 /// # Examples
 /// ```rust
 /// # use sqlx::SqlitePool;
-/// # use tiny_orm_core::SetOption;
+/// # use tiny_orm_model::SetOption;
 /// # use sqlx::FromRow;
 /// #
 /// #[derive(FromRow)]
@@ -215,7 +215,7 @@ where
 /// # Examples
 /// ```rust
 /// # use sqlx::SqlitePool;
-/// # use tiny_orm_core::SetOption;
+/// # use tiny_orm_model::SetOption;
 /// # use sqlx::FromRow;
 /// #
 /// #[derive(FromRow)]

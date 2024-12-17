@@ -15,7 +15,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Publish to crates.io
         run: |
-          cargo publish --package tiny-orm-core
+          cargo publish --package tiny-orm-model
           cargo publish --package tiny-orm-macros --features sqlite
           cargo publish --package tiny-orm --features sqlite
         env:

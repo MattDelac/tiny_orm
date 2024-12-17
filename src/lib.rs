@@ -164,5 +164,5 @@
 //! }
 //! ```
 
-pub use tiny_orm_core::*;
 pub use tiny_orm_macros::*;
+pub use tiny_orm_model::*;

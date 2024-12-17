@@ -1521,26 +1521,18 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "sqlx",
- "tiny-orm-core",
  "tiny-orm-macros",
+ "tiny-orm-model",
  "tokio",
  "uuid",
 ]
 
 [[package]]
-name = "tiny-orm-core"
-version = "0.3.0"
-dependencies = [
- "sqlx",
- "tokio-test",
-]
-
-[[package]]
 name = "tiny-orm-macros"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -1549,9 +1541,17 @@ dependencies = [
  "regex",
  "sqlx",
  "syn",
- "tiny-orm-core",
+ "tiny-orm-model",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "tiny-orm-model"
+version = "0.3.1"
+dependencies = [
+ "sqlx",
+ "tokio-test",
 ]
 
 [[package]]
