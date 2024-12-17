@@ -115,6 +115,7 @@ pub struct Column {
     pub ident: Ident,
     pub _type: Type,
     pub auto_increment: bool,
+    pub primary_key: bool,
 }
 impl Column {
     pub fn new(name: &str, _type: Type) -> Self {
@@ -123,10 +124,14 @@ impl Column {
             ident: format_ident!("{}", name),
             _type,
             auto_increment: false,
+            primary_key: false,
         }
     }
     pub fn set_auto_increment(&mut self) {
         self.auto_increment = true;
+    }
+    pub fn set_primary_key(&mut self) {
+        self.primary_key = true;
     }
 }
 
@@ -147,7 +152,6 @@ impl fmt::Display for TableName {
 pub type StructName = Ident;
 pub type PrimaryKey = Column;
 pub type ReturnObject = Ident;
-pub type FieldNames = Vec<String>;
 pub type Operations = Vec<Operation>;
 
 #[cfg(test)]
