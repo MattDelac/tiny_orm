@@ -5,7 +5,7 @@
 [![Crates.io Version](https://img.shields.io/crates/v/tiny-orm)](https://crates.io/crates/tiny-orm)
 [![Crates.io MSRV](https://img.shields.io/crates/msrv/tiny-orm)](https://crates.io/crates/tiny-orm)
 [![Crates.io Size](https://img.shields.io/crates/size/tiny-orm)](https://crates.io/crates/tiny-orm)
-[![docs.rs](https://img.shields.io/docsrs/tiny-orm)](https://docs.rs/tiny-orm/0.2.0/tiny_orm/)
+[![docs.rs](https://img.shields.io/docsrs/tiny-orm)](https://docs.rs/tiny-orm/latest/tiny_orm/)
 
 
 # Tiny ORM
@@ -231,11 +231,11 @@ Goal of TinyORM is to stay tiny. That being said there are still a few things I 
 ## Release
 One PR with the following
 ```sh
-make release INCREMENT=patch # Or specify a version `make release VERSION=v0.1.2`
+make release INCREMENT=patch
 ```
 
 then add the tag and push it to main
 ```sh
-git tag -a v0.1.2 -m "Release v0.1.2"
+git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin main --tags
 ```

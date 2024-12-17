@@ -1,51 +1,63 @@
+DESCRIBE           := $(shell git describe --match "v*" --always --tags)
+DESCRIBE_PARTS     := $(subst -, ,$(DESCRIBE))
+VERSION_TAG        := $(word 1,$(DESCRIBE_PARTS))
+VERSION            := $(subst v,,$(VERSION_TAG))
+VERSION_PARTS      := $(subst ., ,$(VERSION))
+MAJOR              := $(word 1,$(VERSION_PARTS))
+MINOR              := $(word 2,$(VERSION_PARTS))
+MICRO              := $(word 3,$(VERSION_PARTS))
+
 test:
 	cargo test --lib --tests --features sqlite
 	cargo run --example sqlite --features sqlite
 	cargo run --example postgres --features postgres
 	cargo run --example mysql --features mysql
 
-release:
-	@if [ -n "$(VERSION)" ]; then \
-		$(call validate_version,$(VERSION)) \
-		$(call update_version,$(VERSION)); \
-	elif [ -n "$(INCREMENT)" ]; then \
-		CURRENT_VERSION="v$(call get_current_version)"; \
-		NEW_VERSION="$(call increment_version,$$CURRENT_VERSION,$(INCREMENT))"; \
-		$(call validate_version,$$NEW_VERSION) \
-		$(call update_version,$$NEW_VERSION); \
-	else \
-		echo "Please provide either:"; \
-		echo "  - A specific version: make release VERSION=v0.1.2"; \
-		echo "  - An increment type: make release INCREMENT=patch|minor|major"; \
-		exit 1; \
-	fi
-
 define validate_version
-	@if ! echo "$(1)" | grep -qE "^v[0-9]\.[0-9]{1,2}\.[0-9]{1,2}$$"; then \
-		echo "Version must be in format v0.1.2"; \
+	@if echo "$(1)" | grep -qE "^[0-9]\.[0-9]{1,2}\.[0-9]{1,2}$$"; then \
+		echo "Version '$(1)' is valid"; \
+	else \
+		echo "Version must be in format v0.1.2 but is instead '$(1)'"; \
 		exit 1; \
 	fi
 endef
 
 define update_version
-	@VERSION_NUM=$$(echo "$(1)" | sed 's/^v//') && \
-	sed -i.bak "s/^version = \".*\"/version = \"$$VERSION_NUM\"/" Cargo.toml && \
-	sed -i.bak "s/^version = \".*\"/version = \"$$VERSION_NUM\"/" tiny-orm-macros/Cargo.toml && \
-	sed -i.bak "s/tiny-orm-macros = {version = \"[^\"]*\"/tiny-orm-macros = {version = \"$$VERSION_NUM\"/" Cargo.toml && \
-	sed -i.bak "s/tiny-orm = {version = \"[^\"]*\"/tiny-orm = {version = \"$$VERSION_NUM\"/" README.md && \
-	rm Cargo.toml.bak README.md.bak && \
-	echo "Version updated to $(1) in Cargo.toml and README.md"
+	@NEXT_VERSION="$(1)" && \
+	CURRENT_VERSION="$(VERSION)" && \
+	perl -pi -e 's/version = "'"$$CURRENT_VERSION"'"/version = "'"$$NEXT_VERSION"'"/' Cargo.toml && \
+	perl -pi -e 's/tiny-orm-macros = \{ version = "'"$$CURRENT_VERSION"'"/tiny-orm-macros = { version = "'"$$NEXT_VERSION"'"/' Cargo.toml && \
+	perl -pi -e 's/version = "'"$$CURRENT_VERSION"'"/version = "'"$$NEXT_VERSION"'"/' tiny-orm-macros/Cargo.toml && \
+		perl -pi -e 's/tiny-orm = \{version = "'"$$CURRENT_VERSION"'"/tiny-orm = {version = "'"$$NEXT_VERSION"'"/' README.md && \
+	perl -pi -e 's/tiny-orm\/'"$$CURRENT_VERSION"'\/tiny_orm/tiny-orm\/'"$$NEXT_VERSION"'\/tiny_orm/' README.md
+
+	echo "Version updated to $$NEXT_VERSION from $$CURRENT_VERSION in all files"
 endef
 
-define get_current_version
-	$(shell grep '^version = ' Cargo.toml | head -1 | cut -d '"' -f2)
-endef
+release:
+ifndef INCREMENT
+	@echo "Please provide:"
+	@echo "  - An increment type: make release INCREMENT=patch|minor|major"
+	exit 1
+endif
+ifeq ($(INCREMENT),patch)
+	@$(eval NEXT_VERSION := $(MAJOR).$(MINOR).$(shell expr $(MICRO) + 1))
+	@echo "Next version will be $(NEXT_VERSION) from $(VERSION)"
+	$(call validate_version,$(NEXT_VERSION))
+	$(call update_version,$(NEXT_VERSION))
+else ifeq ($(INCREMENT),minor)
+	@$(eval NEXT_VERSION := $(MAJOR).$(shell expr $(MINOR) + 1).0)
+	@echo "Next version will be $(NEXT_VERSION) from $(VERSION)"
+	$(call validate_version,$(NEXT_VERSION))
+	$(call update_version,$(NEXT_VERSION))
+else ifeq ($(INCREMENT),major)
+	@$(eval NEXT_VERSION := $(shell expr $(MAJOR) + 1).0.0)
+	@echo "Next version will be $(NEXT_VERSION) from $(VERSION)"
+	$(call validate_version,$(NEXT_VERSION))
+	$(call update_version,$(NEXT_VERSION))
+else
+	@echo "Invalid increment type $(INCREMENT)"; \
+	exit 1;
+endif
 
-define increment_version
-	$(shell echo "$(1)" | awk -F. -v type=$(2) '{ \
-		if (type == "patch") $$NF++; \
-		else if (type == "minor") { $$2++; $$3=0; } \
-		else if (type == "major") { $$1++; $$2=0; $$3=0; } \
-		print "v"$$1"."$$2"."$$3 \
-	}')
-endef
+.PHONY: test release
