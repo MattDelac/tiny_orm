@@ -66,7 +66,7 @@ impl ParsedStruct {
 
         Self {
             name: struct_name.clone(),
-            table_name: TableName::new(table_name),
+            table_name: TableName::new(&table_name),
             struct_type,
             return_object,
         }
@@ -133,7 +133,7 @@ impl Column {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TableName(pub String);
 impl TableName {
-    pub fn new(input: String) -> Self {
+    pub fn new(input: &str) -> Self {
         Self(input.to_case(Case::Snake))
     }
 }
