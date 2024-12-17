@@ -1,8 +1,12 @@
 [package]
 name = "tiny-orm-macros"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-publish = false
+rust-version = "1.74.1"
+authors = ["Matt Delacour - mdelacour.com"]
+description = "Macros for Tiny ORM. Not intended to be used directly."
+license = "MIT"
+repository = "https://github.com/MattDelac/tiny_orm"
 
 [lib]
 proc-macro = true

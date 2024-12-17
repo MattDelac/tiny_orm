@@ -24,7 +24,7 @@ include = [
 members = ["tiny-orm-macros"]
 
 [dependencies]
-tiny-orm-macros = { version = "0.1.0", path = "./tiny-orm-macros", features = [] }
+tiny-orm-macros = { version = "0.2.0", path = "./tiny-orm-macros", features = [] }
 sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]

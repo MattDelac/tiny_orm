@@ -231,7 +231,7 @@ Goal of TinyORM is to stay tiny. That being said there are still a few things I 
 ## Release
 One PR with the following
 ```sh
-make release VERSION=v0.1.2
+make release INCREMENT=patch # Or specify a version `make release VERSION=v0.1.2`
 ```
 
 then add the tag and push it to main
