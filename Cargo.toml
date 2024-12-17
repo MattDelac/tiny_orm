@@ -29,9 +29,9 @@ sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]
 default = []
-sqlite = ["tiny-orm-macros/sqlite"]
-postgres = ["tiny-orm-macros/postgres"]
-mysql = ["tiny-orm-macros/mysql"]
+sqlite = ["sqlx/sqlite", "tiny-orm-macros/sqlite"]
+postgres = ["sqlx/postgres", "tiny-orm-macros/postgres"]
+mysql = ["sqlx/mysql", "tiny-orm-macros/mysql"]
 
 [dev-dependencies]
 sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "derive"] }
