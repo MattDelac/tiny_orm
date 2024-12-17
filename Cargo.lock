@@ -1521,7 +1521,7 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "sqlx",
  "tiny-orm-core",
@@ -1532,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "sqlx",
  "tokio-test",
@@ -1540,7 +1540,7 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm-macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "convert_case",
  "once_cell",

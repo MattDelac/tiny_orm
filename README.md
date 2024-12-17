@@ -22,7 +22,7 @@ cargo install tiny-orm -F postgres # sqlite or mysql
 Or add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-tiny-orm = {version = "0.2.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
+tiny-orm = {version = "0.3.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
 ## Principles & advantages of TinyORM
@@ -237,7 +237,7 @@ Goal of TinyORM is to stay tiny. That being said there are still a few things I 
 - [X] Support MySQL with non auto increment PK. Won't be able to use the `last_return_id()` function in the case (eg with UUID).
 - [ ] Auto generate the `created_at` / `updated_at` column based on some default value when needed.  
 -- For example, being able to have `Utc.now()` on the `update()` method for the `updated_at` if the field is of type `DateTime<Utc>`
-- [ ] Ability to skip some fields if not set (especially for the create and update methods).  
+- [X] Ability to skip some fields if not set (especially for the create and update methods).  
 -- For example if the field is of type `SetOption<DateTime<Utc>>` then it would only put the field as part of the query if the value is `Set(value)`. It would skip it if it has the value `NotSet`.
 
 ## Release
