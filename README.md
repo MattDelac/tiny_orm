@@ -39,7 +39,9 @@ Why TinyORM over another one?
 
 - Minimal set of dependencies (fast compile time)  
 -- [SQLx](https://github.com/launchbadge/sqlx)  
--- [convert_case](https://github.com/rutrum/convert-case)
+-- [convert_case](https://github.com/rutrum/convert-case)  
+-- [regex](https://crates.io/crates/regex)  
+-- [lazy_static](https://crates.io/crates/https://crates.io/crates/lazy_static)  
 
 - Intuitive with smart defaults and flexible
 
@@ -192,13 +194,13 @@ struct Todo {
 ```
 
 ```rust
-use tiny_orm::Table;
+use tiny_orm::{Table, SetOption};
 #[derive(Debug, FromRow, Table, Clone)]
 struct Todo {
     #[tiny_orm(primary_key(auto))]
     id: i64,
-    description: Option<String>,
-    done: Option<bool>
+    description: SetOption<String>,
+    done: SetOption<bool>
 }
 ```
 
@@ -213,6 +215,12 @@ impl Todo {
 ```
 
 <!-- cargo-rdme end -->
+
+#### `SetOption`
+`SetOption` is an Enum that behaves similarly to `Option`. The main difference is that Tiny ORM will automatically exclude the fields once they are `Unset`.  
+The goal is to not always push all the fields during update or create operations. This would avoid some potential data race condition if the local struct is out of date with what the database has.  
+You can check [tiny-orm-core/src/lib.rs](./tiny-orm-core/src/lib.rs) but `SetOption` implement most of the Traits needed to automatically be used with Sqlx (Encode, Decode) as well as useful methods like `.inner(), .is_set() & .is_not_set()`.  
+You can check the [`sqlite-setoption` example](./examples/sqlite-setoption/main.rs) to see it in action.
 
 ## Migrations
 ### From 0.1.* to 0.2.*

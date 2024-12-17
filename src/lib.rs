@@ -143,14 +143,14 @@
 //! ```
 //!
 //! ```rust
-//! use tiny_orm::Table;
+//! use tiny_orm::{Table, SetOption};
 //! # use sqlx::FromRow;
 //! #[derive(Debug, FromRow, Table, Clone)]
 //! struct Todo {
 //!     #[tiny_orm(primary_key(auto))]
 //!     id: i64,
-//!     description: Option<String>,
-//!     done: Option<bool>
+//!     description: SetOption<String>,
+//!     done: SetOption<bool>
 //! }
 //! ```
 //!
