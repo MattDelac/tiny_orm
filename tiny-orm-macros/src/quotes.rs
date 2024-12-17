@@ -181,43 +181,62 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let returning_statement = return_type.clone().returning_statement();
     let query_builder_execution = return_type.query_builder_execution();
 
-    let field_iter = attr
-        .columns
-        .clone()
-        .into_iter()
-        .map(|c| c.name)
-        .map(|f| format_ident!("{}", f));
+    let mut field_str_quote = Vec::new();
+    let mut field_values_quote = Vec::new();
 
-    let field_idents: Vec<syn::Ident> = match attr.primary_key {
-        None
-        | Some(Column {
-            auto_increment: false,
-            ..
-        }) => field_iter.collect(),
-        Some(ref primary_key) => field_iter.filter(|x| x != &primary_key.ident).collect(),
-    };
-    let fields_str = field_idents
-        .clone()
-        .into_iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>()
-        .join(", ");
+    for column in attr.columns.iter() {
+        if column.auto_increment {
+            continue;
+        }
+        let str_quote = if column.use_set_options() {
+            let column_ident = &column.ident;
+            let column_name = &column.name;
+            quote! {
+                if self.#column_ident.is_set() {
+                    fields_str.push(#column_name);
+                }
+            }
+        } else {
+            let column_name = &column.name;
+            quote! {
+                fields_str.push(#column_name);
+            }
+        };
+        field_str_quote.push(str_quote);
+
+        let value_quote = if column.use_set_options() {
+            let column_ident = &column.ident;
+            quote! {
+                if let SetOption::Set(v) = &self.#column_ident {
+                    separated.push_bind(v);
+                }
+            }
+        } else {
+            let column_ident = &column.ident;
+            quote! {
+                separated.push_bind(&self.#column_ident);
+            }
+        };
+        field_values_quote.push(value_quote);
+    }
 
     quote! {
         pub async fn create<'e, E>(&self, db: E) -> #function_output
         where
             E: ::sqlx::#db_type_ident<'e>
         {
+            let mut fields_str = Vec::new();
+
+            #(#field_str_quote)*
+
             let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
             qb.push(#table_name);
             qb.push(" (");
-            qb.push(#fields_str);
+            qb.push(fields_str.join(", "));
             qb.push(") VALUES (");
 
             let mut separated = qb.separated(", ");
-            #(
-                separated.push_bind(&self.#field_idents);
-            )*
+            #(#field_values_quote)*
             separated.push_unseparated(")");
 
             #returning_statement
@@ -246,18 +265,36 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
         Some(ref pk) => (&pk.name, &pk.ident),
         None => panic!("No primary key field found"),
     };
-    let update_fields = attr
-        .columns
-        .clone()
-        .into_iter()
-        .filter(|c| !c.primary_key)
-        .map(|c| c.name)
-        .collect::<Vec<_>>();
+    let mut fields_quote = Vec::new();
 
-    let update_field_idents: Vec<syn::Ident> = update_fields
-        .iter()
-        .map(|f| format_ident!("{}", f))
-        .collect::<Vec<_>>();
+    for column in attr.columns.iter() {
+        if column.auto_increment || column.primary_key {
+            continue;
+        }
+        let column_ident = &column.ident;
+        let column_name = &column.name;
+
+        let quote = quote! {
+            if !first {
+                qb.push(", ");
+            }
+            qb.push(#column_name);
+            qb.push(" = ");
+            qb.push_bind(&self.#column_ident);
+            first = false;
+        };
+
+        let str_quote = if column.use_set_options() {
+            quote! {
+                if self.#column_ident.is_set() {
+                    #quote
+                }
+            }
+        } else {
+            quote
+        };
+        fields_quote.push(str_quote);
+    }
 
     quote! {
         pub async fn update<'e, E>(&self, db: E) -> #function_output
@@ -269,15 +306,7 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
             qb.push(" SET ");
 
             let mut first = true;
-            #(
-                if !first {
-                    qb.push(", ");
-                }
-                qb.push(#update_fields);
-                qb.push(" = ");
-                qb.push_bind(&self.#update_field_idents);
-                first = false;
-            )*
+            #(#fields_quote)*
 
             qb.push(" WHERE ");
             qb.push(#pk_name);
@@ -383,10 +412,16 @@ mod tests {
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("id");
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("id, created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -419,10 +454,16 @@ mod tests {
                 where
                     E: ::sqlx::MySqlExecutor<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("id");
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("id, created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -454,10 +495,15 @@ mod tests {
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -489,10 +535,15 @@ mod tests {
                 where
                     E: ::sqlx::MySqlExecutor<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("created_at");
+                    fields_str.push("updated_at");
+                    fields_str.push("last_name");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("created_at, updated_at, last_name");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -672,10 +723,15 @@ mod tests {
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("first_name");
+                    fields_str.push("last_name");
+                    fields_str.push("email");
+
                     let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
                     qb.push("contact");
                     qb.push(" (");
-                    qb.push("first_name, last_name, email");
+                    qb.push(fields_str.join(", "));
                     qb.push(") VALUES (");
 
                     let mut separated = qb.separated(", ");
@@ -711,6 +767,199 @@ mod tests {
             };
 
             create_fn(&input);
+        }
+
+        #[cfg(not(feature = "mysql"))]
+        #[test]
+        fn test_setoption_create_null_pk() {
+            use syn::parse_quote;
+
+            let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
+            let input = Attr {
+                parsed_struct,
+                primary_key: None,
+                columns: vec![
+                    Column::new("first_name", parse_quote!(SetOption<String>)),
+                    Column::new("last_name", parse_quote!(SetOption<String>)),
+                    Column::new("email", parse_quote!(String)),
+                ],
+                operations: vec![Operation::Create],
+            };
+
+            let generated = clean_tokens(create_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<Contact>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut fields_str = Vec::new();
+                    if self.first_name.is_set() {
+                        fields_str.push("first_name");
+                    }
+                    if self.last_name.is_set() {
+                        fields_str.push("last_name");
+                    }
+                    fields_str.push("email");
+
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
+                    qb.push("contact");
+                    qb.push(" (");
+                    qb.push(fields_str.join(", "));
+                    qb.push(") VALUES (");
+
+                    let mut separated = qb.separated(", ");
+                    if let SetOption::Set(v) = &self.first_name {
+                        separated.push_bind(v);
+                    }
+                    if let SetOption::Set(v) = &self.last_name {
+                        separated.push_bind(v);
+                    }
+                    separated.push_bind(&self.email);
+                    separated.push_unseparated(")");
+
+                    qb.push(" RETURNING * ");
+
+                    qb.build_query_as()
+                    .fetch_one(db)
+                    .await
+                }
+            });
+            assert_eq!(generated, expected);
+        }
+
+        #[cfg(not(feature = "mysql"))]
+        #[test]
+        fn test_setoption_create_auto_generated_pk() {
+            use syn::parse_quote;
+
+            let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
+            let mut primary_key = Column::new("incremental_id", parse_quote!(i64));
+            primary_key.set_primary_key();
+            primary_key.set_auto_increment();
+            let input = Attr {
+                parsed_struct,
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("first_name", parse_quote!(SetOption<String>)),
+                    Column::new("last_name", parse_quote!(SetOption<String>)),
+                    Column::new("email", parse_quote!(String)),
+                ],
+                operations: vec![Operation::Create],
+            };
+
+            let generated = clean_tokens(create_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut fields_str = Vec::new();
+                    if self.first_name.is_set() {
+                        fields_str.push("first_name");
+                    }
+                    if self.last_name.is_set() {
+                        fields_str.push("last_name");
+                    }
+                    fields_str.push("email");
+
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
+                    qb.push("contact");
+                    qb.push(" (");
+                    qb.push(fields_str.join(", "));
+                    qb.push(") VALUES (");
+
+                    let mut separated = qb.separated(", ");
+                    if let SetOption::Set(v) = &self.first_name {
+                        separated.push_bind(v);
+                    }
+                    if let SetOption::Set(v) = &self.last_name {
+                        separated.push_bind(v);
+                    }
+                    separated.push_bind(&self.email);
+                    separated.push_unseparated(")");
+
+                    qb.push("RETURNING");
+                    qb.push("incremental_id");
+
+                    qb.build()
+                    .fetch_one(db)
+                    .await
+                    .map(|row|row.get(0))
+                }
+            });
+            assert_eq!(generated, expected);
+        }
+
+        #[cfg(not(feature = "mysql"))]
+        #[test]
+        fn test_setoption_create_custom_pk() {
+            use syn::parse_quote;
+
+            let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
+            let mut primary_key = Column::new("uuid", parse_quote!(Uuid));
+            primary_key.set_primary_key();
+            let input = Attr {
+                parsed_struct,
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("first_name", parse_quote!(SetOption<String>)),
+                    Column::new("last_name", parse_quote!(SetOption<String>)),
+                    Column::new("email", parse_quote!(String)),
+                ],
+                operations: vec![Operation::Create],
+            };
+
+            let generated = clean_tokens(create_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<Uuid>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut fields_str = Vec::new();
+                    fields_str.push("uuid");
+                    if self.first_name.is_set() {
+                        fields_str.push("first_name");
+                    }
+                    if self.last_name.is_set() {
+                        fields_str.push("last_name");
+                    }
+                    fields_str.push("email");
+
+                    let mut qb = ::sqlx::QueryBuilder::new("INSERT INTO ");
+                    qb.push("contact");
+                    qb.push(" (");
+                    qb.push(fields_str.join(", "));
+                    qb.push(") VALUES (");
+
+                    let mut separated = qb.separated(", ");
+                    separated.push_bind(&self.uuid);
+                    if let SetOption::Set(v) = &self.first_name {
+                        separated.push_bind(v);
+                    }
+                    if let SetOption::Set(v) = &self.last_name {
+                        separated.push_bind(v);
+                    }
+                    separated.push_bind(&self.email);
+                    separated.push_unseparated(")");
+
+                    qb.push("RETURNING");
+                    qb.push("uuid");
+
+                    qb.build()
+                    .fetch_one(db)
+                    .await
+                    .map(|row|row.get(0))
+                }
+            });
+            assert_eq!(generated, expected);
         }
 
         #[cfg(not(feature = "mysql"))]
@@ -800,6 +1049,136 @@ mod tests {
                     qb.push("first_name");
                     qb.push(" = ");
                     qb.push_bind(&self.first_name);
+                    first = false;
+
+                    qb.push(" WHERE ");
+                    qb.push("custom_id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.custom_id);
+
+                    qb.build()
+                    .execute(db)
+                    .await
+                    .map(|_|())
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
+
+        #[cfg(not(feature = "mysql"))]
+        #[test]
+        fn test_custom_output_update_setoption() {
+            use syn::parse_quote;
+            let db_ident = db_ident();
+            let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
+            let mut primary_key = Column::new("custom_id", parse_quote!(i64));
+            primary_key.set_primary_key();
+
+            let input = Attr {
+                parsed_struct,
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("first_name", parse_quote!(SetOption<String>)),
+                    Column::new("last_name", parse_quote!(String)),
+                ],
+                operations: vec![Operation::Update],
+            };
+
+            let generated = clean_tokens(update_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<Contact>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET ");
+
+                    let mut first = true;
+
+                    if self.first_name.is_set() {
+                        if !first {
+                            qb.push(",");
+                        }
+                        qb.push("first_name");
+                        qb.push(" = ");
+                        qb.push_bind(&self.first_name);
+                        first = false;
+                    }
+                    if !first {
+                        qb.push(",");
+                    }
+                    qb.push("last_name");
+                    qb.push(" = ");
+                    qb.push_bind(&self.last_name);
+                    first = false;
+
+                    qb.push(" WHERE ");
+                    qb.push("custom_id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.custom_id);
+
+                    qb.push(" RETURNING * ");
+
+                    qb.build_query_as()
+                    .fetch_one(db)
+                    .await
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
+
+        #[cfg(feature = "mysql")]
+        #[test]
+        fn test_custom_output_update_setoption() {
+            use syn::parse_quote;
+            let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
+            let mut primary_key = Column::new("custom_id", parse_quote!(i64));
+            primary_key.set_primary_key();
+
+            let input = Attr {
+                parsed_struct,
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("first_name", parse_quote!(SetOption<String>)),
+                    Column::new("last_name", parse_quote!(String)),
+                ],
+                operations: vec![Operation::Update],
+            };
+
+            let generated = clean_tokens(update_fn(&input));
+
+            let expected = clean_tokens(quote! {
+                pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::MySqlExecutor<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET ");
+
+                    let mut first = true;
+
+                    if self.first_name.is_set() {
+                        if !first {
+                            qb.push(",");
+                        }
+                        qb.push("first_name");
+                        qb.push(" = ");
+                        qb.push_bind(&self.first_name);
+                        first = false;
+                    }
+                    if !first {
+                        qb.push(",");
+                    }
+                    qb.push("last_name");
+                    qb.push(" = ");
+                    qb.push_bind(&self.last_name);
                     first = false;
 
                     qb.push(" WHERE ");

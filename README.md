@@ -39,7 +39,9 @@ Why TinyORM over another one?
 
 - Minimal set of dependencies (fast compile time)  
 -- [SQLx](https://github.com/launchbadge/sqlx)  
--- [convert_case](https://github.com/rutrum/convert-case)
+-- [convert_case](https://github.com/rutrum/convert-case)  
+-- [regex](https://crates.io/crates/regex)  
+-- [lazy_static](https://crates.io/crates/https://crates.io/crates/lazy_static)  
 
 - Intuitive with smart defaults and flexible
 
@@ -192,13 +194,13 @@ struct Todo {
 ```
 
 ```rust
-use tiny_orm::Table;
+use tiny_orm::{Table, SetOption};
 #[derive(Debug, FromRow, Table, Clone)]
 struct Todo {
     #[tiny_orm(primary_key(auto))]
     id: i64,
-    description: Option<String>,
-    done: Option<bool>
+    description: SetOption<String>,
+    done: SetOption<bool>
 }
 ```
 

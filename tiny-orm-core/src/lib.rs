@@ -1,6 +1,7 @@
 use sqlx::decode::Decode;
+use sqlx::encode::IsNull;
 use sqlx::error::BoxDynError;
-use sqlx::{Database, Type, ValueRef};
+use sqlx::{Database, Encode, Type, ValueRef};
 
 /// tiny_orm::SetOption is an enum that behave similarly to `Option` in the sense that there are only two variants.
 /// The goal is to easily differentiate between an Option type and a SetOption type.
@@ -205,5 +206,94 @@ where
 
     fn compatible(ty: &<DB as Database>::TypeInfo) -> bool {
         T::compatible(ty)
+    }
+}
+
+/// Implements database encoding for SetOption<T>.
+/// This allows automatic conversion from SetOption<T> to database values.
+///
+/// # Examples
+/// ```rust
+/// # use sqlx::SqlitePool;
+/// # use tiny_orm_core::SetOption;
+/// # use sqlx::FromRow;
+/// #
+/// #[derive(FromRow)]
+/// struct TestRecord {
+///     value: SetOption<i32>,
+/// }
+///
+/// # tokio_test::block_on(async {
+/// let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+///
+/// // Create test table
+/// sqlx::query("CREATE TABLE test (value INTEGER)")
+///     .execute(&pool)
+///     .await
+///     .unwrap();
+///
+/// // Test inserting a Set value
+/// let set_value = SetOption::Set(42);
+/// sqlx::query("INSERT INTO test (value) VALUES (?)")
+///     .bind(set_value)
+///     .execute(&pool)
+///     .await
+///     .unwrap();
+///
+/// let record: TestRecord = sqlx::query_as("SELECT value FROM test")
+///     .fetch_one(&pool)
+///     .await
+///     .unwrap();
+/// assert_eq!(record.value, SetOption::Set(42));
+///
+/// // Test inserting a NotSet value
+/// sqlx::query("DELETE FROM test").execute(&pool).await.unwrap();
+/// let not_set_value: SetOption<i32> = SetOption::NotSet;
+/// sqlx::query("INSERT INTO test (value) VALUES (?)")
+///     .bind(not_set_value)
+///     .execute(&pool)
+///     .await
+///     .unwrap();
+///
+/// let record: TestRecord = sqlx::query_as("SELECT value FROM test")
+///     .fetch_one(&pool)
+///     .await
+///     .unwrap();
+/// assert_eq!(record.value, SetOption::NotSet);
+/// # });
+/// ```
+impl<'q, T, DB: Database> Encode<'q, DB> for SetOption<T>
+where
+    T: Encode<'q, DB>,
+{
+    fn encode(self, buf: &mut <DB as Database>::ArgumentBuffer<'q>) -> Result<IsNull, BoxDynError> {
+        match self {
+            SetOption::Set(value) => value.encode(buf),
+            SetOption::NotSet => Ok(IsNull::Yes),
+        }
+    }
+
+    fn encode_by_ref(
+        &self,
+        buf: &mut <DB as Database>::ArgumentBuffer<'q>,
+    ) -> Result<IsNull, BoxDynError> {
+        match self {
+            SetOption::Set(value) => value.encode_by_ref(buf),
+            SetOption::NotSet => Ok(IsNull::Yes),
+        }
+    }
+
+    fn produces(&self) -> Option<DB::TypeInfo> {
+        match self {
+            SetOption::Set(value) => value.produces(),
+            SetOption::NotSet => None,
+        }
+    }
+
+    fn size_hint(&self) -> usize {
+        match self {
+            SetOption::Set(value) => value.size_hint(),
+            SetOption::NotSet => 0,
+        }
     }
 }
