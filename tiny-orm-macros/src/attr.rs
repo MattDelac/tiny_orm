@@ -155,8 +155,7 @@ impl Parser {
                             if attr.path().is_ident(NAME_MACRO_OPERATION_ARG) {
                                 attr.parse_nested_meta(|meta| {
                                     if meta.path.is_ident("primary_key") {
-                                        let mut column =
-                                            Column::new(field_name.clone(), field.ty.clone());
+                                        let mut column = Column::new(&field_name, field.ty.clone());
 
                                         if meta.input.peek(Paren) {
                                             let content;
@@ -179,7 +178,7 @@ impl Parser {
 
                         // Default fallbacks
                         if field_name == "id" && primary_key.is_none() {
-                            primary_key = Some(Column::new(field_name.clone(), field.ty.clone()));
+                            primary_key = Some(Column::new(&field_name, field.ty.clone()));
                         }
 
                         field_names.push(field_name);
@@ -220,7 +219,7 @@ mod tests {
 
         #[test]
         fn test_set_auto_increment() {
-            let mut column = Column::new("col_name".to_string(), parse_quote!(i32));
+            let mut column = Column::new("col_name", parse_quote!(i32));
             assert!(!column.auto_increment);
             column.set_auto_increment();
             assert!(column.auto_increment);
@@ -542,10 +541,7 @@ mod tests {
             };
 
             let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
-            assert_eq!(
-                primary_key,
-                Some(Column::new("id".to_string(), parse_quote!(i64)))
-            );
+            assert_eq!(primary_key, Some(Column::new("id", parse_quote!(i64))));
             assert_eq!(
                 field_names,
                 vec![
@@ -585,7 +581,7 @@ mod tests {
             let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
             assert_eq!(
                 primary_key,
-                Some(Column::new("custom_key".to_string(), parse_quote!(u32)))
+                Some(Column::new("custom_key", parse_quote!(u32)))
             );
             assert_eq!(
                 field_names,
@@ -611,7 +607,7 @@ mod tests {
             };
 
             let (primary_key, _) = Parser::parse_fields_macro_arguments(input.data);
-            let mut pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            let mut pk = Column::new("custom_key", parse_quote!(u32));
             pk.set_auto_increment();
             assert_eq!(primary_key, Some(pk));
         }
@@ -634,7 +630,7 @@ mod tests {
             let (primary_key, field_names) = Parser::parse_fields_macro_arguments(input.data);
             assert_eq!(
                 primary_key,
-                Some(Column::new("custom_key".to_string(), parse_quote!(u32)))
+                Some(Column::new("custom_key", parse_quote!(u32)))
             );
             assert_eq!(
                 field_names,
@@ -666,7 +662,7 @@ mod tests {
             };
 
             let (primary_key, _) = Parser::parse_fields_macro_arguments(input.data);
-            let mut pk = Column::new("custom_key".to_string(), parse_quote!(u32));
+            let mut pk = Column::new("custom_key", parse_quote!(u32));
             pk.set_auto_increment();
             assert_eq!(primary_key, Some(pk));
         }
@@ -697,7 +693,7 @@ mod tests {
                 result,
                 Attr {
                     parsed_struct,
-                    primary_key: Some(Column::new("id".to_string(), parse_quote!(i64))),
+                    primary_key: Some(Column::new("id", parse_quote!(i64))),
                     field_names: vec![
                         "id".to_string(),
                         "created_at".to_string(),
@@ -732,7 +728,7 @@ mod tests {
                 result,
                 Attr {
                     parsed_struct,
-                    primary_key: Some(Column::new("custom_pk".to_string(), parse_quote!(i64))),
+                    primary_key: Some(Column::new("custom_pk", parse_quote!(i64))),
                     field_names: vec![
                         "custom_pk".to_string(),
                         "custom_created_at".to_string(),

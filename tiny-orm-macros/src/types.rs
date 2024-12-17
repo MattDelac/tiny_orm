@@ -117,9 +117,9 @@ pub struct Column {
     pub auto_increment: bool,
 }
 impl Column {
-    pub fn new(name: String, _type: Type) -> Self {
+    pub fn new(name: &str, _type: Type) -> Self {
         Self {
-            name: name.clone(),
+            name: name.to_string(),
             ident: format_ident!("{}", name),
             _type,
             auto_increment: false,
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_set_auto_increment() {
-        let mut column = Column::new("col_name".to_string(), parse_quote!(i32));
+        let mut column = Column::new("col_name", parse_quote!(i32));
         assert!(!column.auto_increment);
         column.set_auto_increment();
         assert!(column.auto_increment);

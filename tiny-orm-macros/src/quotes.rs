@@ -343,7 +343,7 @@ mod tests {
         use super::*;
 
         fn input(auto_increment: bool) -> Attr {
-            let mut primary_key = Column::new("id".to_string(), parse_quote!(i64));
+            let mut primary_key = Column::new("id", parse_quote!(i64));
             if auto_increment {
                 primary_key.set_auto_increment();
             };
@@ -712,7 +712,7 @@ mod tests {
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let input = Attr {
                 parsed_struct,
-                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
+                primary_key: Some(Column::new("custom_id", parse_quote!(i64))),
                 field_names: vec!["custom_id".to_string(), "first_name".to_string()],
                 operations: vec![Operation::Update],
             };
@@ -761,7 +761,7 @@ mod tests {
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let input = Attr {
                 parsed_struct,
-                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
+                primary_key: Some(Column::new("custom_id", parse_quote!(i64))),
                 field_names: vec!["custom_id".to_string(), "first_name".to_string()],
                 operations: vec![Operation::Update],
             };
