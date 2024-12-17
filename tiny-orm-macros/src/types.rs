@@ -17,11 +17,11 @@ impl StructType {
             StructType::Generic => vec![Operation::Get, Operation::List, Operation::Delete],
         }
     }
-    pub fn remove_prefix(&self, input: String) -> String {
+    pub fn remove_prefix(&self, input: &str) -> String {
         match self {
             StructType::Create => input.replace("New", ""),
             StructType::Update => input.replace("Update", ""),
-            StructType::Generic => input,
+            StructType::Generic => input.to_string(),
         }
     }
 }
@@ -55,13 +55,13 @@ impl ParsedStruct {
 
         let table_name = match table_name {
             Some(value) => value,
-            None => struct_type.remove_prefix(name.clone()),
+            None => struct_type.remove_prefix(&name),
         };
 
         let return_object = match (return_object, &struct_type) {
             (Some(value), _) => value,
             (None, &StructType::Generic) => format_ident!("Self"),
-            (None, _) => format_ident!("{}", struct_type.remove_prefix(name)),
+            (None, _) => format_ident!("{}", struct_type.remove_prefix(&name)),
         };
 
         Self {
