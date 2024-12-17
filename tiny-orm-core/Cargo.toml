@@ -1,0 +1,15 @@
+[package]
+name = "tiny-orm-core"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.74.1"
+authors = ["Matt Delacour - mdelacour.com"]
+description = "Struct and Trait avaiable for Tiny ORM. Not intended to be used directly."
+license = "MIT"
+repository = "https://github.com/MattDelac/tiny_orm"
+
+[dependencies]
+sqlx = { version = ">=0.7, <1.0", default-features = false }
+
+[dev-dependencies]
+tokio-test = "0.4.4"

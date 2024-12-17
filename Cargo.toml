@@ -21,10 +21,11 @@ include = [
 ]
 
 [workspace]
-members = ["tiny-orm-macros"]
+members = ["tiny-orm-core", "tiny-orm-macros"]
 
 [dependencies]
 tiny-orm-macros = { version = "0.2.0", path = "./tiny-orm-macros", features = [] }
+tiny-orm-core = { version = "0.2.0", path = "./tiny-orm-core", features = [] }
 sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]

@@ -15,7 +15,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Publish to crates.io
         run: |
-          cargo publish --features sqlite --dry-run --package tiny-orm-macros
-          cargo publish --features sqlite --dry-run --package tiny-orm
+          cargo publish --package tiny-orm-core
+          cargo publish --package tiny-orm-macros --features sqlite
+          cargo publish --package tiny-orm --features sqlite
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
