@@ -181,7 +181,12 @@ pub fn create_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let returning_statement = return_type.clone().returning_statement();
     let query_builder_execution = return_type.query_builder_execution();
 
-    let field_iter = attr.field_names.iter().map(|f| format_ident!("{}", f));
+    let field_iter = attr
+        .columns
+        .clone()
+        .into_iter()
+        .map(|c| c.name)
+        .map(|f| format_ident!("{}", f));
 
     let field_idents: Vec<syn::Ident> = match attr.primary_key {
         None
@@ -242,10 +247,11 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
         None => panic!("No primary key field found"),
     };
     let update_fields = attr
-        .field_names
+        .columns
         .clone()
         .into_iter()
-        .filter(|f| f != pk_name)
+        .filter(|c| !c.primary_key)
+        .map(|c| c.name)
         .collect::<Vec<_>>();
 
     let update_field_idents: Vec<syn::Ident> = update_fields
@@ -343,7 +349,8 @@ mod tests {
         use super::*;
 
         fn input(auto_increment: bool) -> Attr {
-            let mut primary_key = Column::new("id".to_string(), parse_quote!(i64));
+            let mut primary_key = Column::new("id", parse_quote!(i64));
+            primary_key.set_primary_key();
             if auto_increment {
                 primary_key.set_auto_increment();
             };
@@ -354,12 +361,12 @@ mod tests {
             );
             Attr {
                 parsed_struct,
-                primary_key: Some(primary_key),
-                field_names: vec![
-                    "id".to_string(),
-                    "created_at".to_string(),
-                    "updated_at".to_string(),
-                    "last_name".to_string(),
+                primary_key: Some(primary_key.clone()),
+                columns: vec![
+                    primary_key,
+                    Column::new("created_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("updated_at", parse_quote!(DateTime<Utc>)),
+                    Column::new("last_name", parse_quote!(String)),
                 ],
                 operations: Operation::all(),
             }
@@ -643,15 +650,17 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_custom_output_create() {
+            use syn::parse_quote;
+
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let input = Attr {
                 parsed_struct,
                 primary_key: None,
-                field_names: vec![
-                    "first_name".to_string(),
-                    "last_name".to_string(),
-                    "email".to_string(),
+                columns: vec![
+                    Column::new("first_name", parse_quote!(String)),
+                    Column::new("last_name", parse_quote!(String)),
+                    Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
             };
@@ -693,10 +702,10 @@ mod tests {
             let input = Attr {
                 parsed_struct,
                 primary_key: None,
-                field_names: vec![
-                    "first_name".to_string(),
-                    "last_name".to_string(),
-                    "email".to_string(),
+                columns: vec![
+                    Column::new("first_name", parse_quote!(String)),
+                    Column::new("last_name", parse_quote!(String)),
+                    Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
             };
@@ -710,10 +719,13 @@ mod tests {
             use syn::parse_quote;
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
+            let mut primary_key = Column::new("custom_id", parse_quote!(i64));
+            primary_key.set_primary_key();
+
             let input = Attr {
                 parsed_struct,
-                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
-                field_names: vec!["custom_id".to_string(), "first_name".to_string()],
+                primary_key: Some(primary_key.clone()),
+                columns: vec![primary_key, Column::new("first_name", parse_quote!(String))],
                 operations: vec![Operation::Update],
             };
 
@@ -759,10 +771,13 @@ mod tests {
         fn test_custom_output_update() {
             use syn::parse_quote;
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
+            let mut primary_key = Column::new("custom_id", parse_quote!(i64));
+            primary_key.set_primary_key();
+
             let input = Attr {
                 parsed_struct,
-                primary_key: Some(Column::new("custom_id".to_string(), parse_quote!(i64))),
-                field_names: vec!["custom_id".to_string(), "first_name".to_string()],
+                primary_key: Some(primary_key.clone()),
+                columns: vec![primary_key, Column::new("first_name", parse_quote!(String))],
                 operations: vec![Operation::Update],
             };
 

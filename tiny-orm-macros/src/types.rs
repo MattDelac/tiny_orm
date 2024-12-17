@@ -17,11 +17,11 @@ impl StructType {
             StructType::Generic => vec![Operation::Get, Operation::List, Operation::Delete],
         }
     }
-    pub fn remove_prefix(&self, input: String) -> String {
+    pub fn remove_prefix(&self, input: &str) -> String {
         match self {
             StructType::Create => input.replace("New", ""),
             StructType::Update => input.replace("Update", ""),
-            StructType::Generic => input,
+            StructType::Generic => input.to_string(),
         }
     }
 }
@@ -55,18 +55,18 @@ impl ParsedStruct {
 
         let table_name = match table_name {
             Some(value) => value,
-            None => struct_type.remove_prefix(name.clone()),
+            None => struct_type.remove_prefix(&name),
         };
 
         let return_object = match (return_object, &struct_type) {
             (Some(value), _) => value,
             (None, &StructType::Generic) => format_ident!("Self"),
-            (None, _) => format_ident!("{}", struct_type.remove_prefix(name)),
+            (None, _) => format_ident!("{}", struct_type.remove_prefix(&name)),
         };
 
         Self {
             name: struct_name.clone(),
-            table_name: TableName::new(table_name),
+            table_name: TableName::new(&table_name),
             struct_type,
             return_object,
         }
@@ -115,25 +115,30 @@ pub struct Column {
     pub ident: Ident,
     pub _type: Type,
     pub auto_increment: bool,
+    pub primary_key: bool,
 }
 impl Column {
-    pub fn new(name: String, _type: Type) -> Self {
+    pub fn new(name: &str, _type: Type) -> Self {
         Self {
-            name: name.clone(),
+            name: name.to_string(),
             ident: format_ident!("{}", name),
             _type,
             auto_increment: false,
+            primary_key: false,
         }
     }
     pub fn set_auto_increment(&mut self) {
         self.auto_increment = true;
+    }
+    pub fn set_primary_key(&mut self) {
+        self.primary_key = true;
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TableName(pub String);
 impl TableName {
-    pub fn new(input: String) -> Self {
+    pub fn new(input: &str) -> Self {
         Self(input.to_case(Case::Snake))
     }
 }
@@ -147,7 +152,6 @@ impl fmt::Display for TableName {
 pub type StructName = Ident;
 pub type PrimaryKey = Column;
 pub type ReturnObject = Ident;
-pub type FieldNames = Vec<String>;
 pub type Operations = Vec<Operation>;
 
 #[cfg(test)]
@@ -158,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_set_auto_increment() {
-        let mut column = Column::new("col_name".to_string(), parse_quote!(i32));
+        let mut column = Column::new("col_name", parse_quote!(i32));
         assert!(!column.auto_increment);
         column.set_auto_increment();
         assert!(column.auto_increment);
