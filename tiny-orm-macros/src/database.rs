@@ -1,6 +1,7 @@
 use quote::format_ident;
 use syn::Ident;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DbType {
     Postgres,

@@ -11,30 +11,29 @@ documentation = "https://docs.rs/tiny-orm"
 keywords = ["sqlx", "query_builder", "orm", "crud", "database"]
 categories = ["database"]
 readme = "README.md"
-exclude = [
-    "tests/*",
-    "examples/*",
-    ".github/*",
+include = [
+    "tiny-orm-macros/**/*.rs",
+    "tiny-orm-macros/Cargo.toml",
+    "src/**/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
 ]
 
-[lib]
-proc-macro = true
+[workspace]
+members = ["tiny-orm-macros"]
 
 [dependencies]
-syn = { version = "2.0", features = ["full", "extra-traits"] }
-quote = "1.0"
-proc-macro2 = "1.0"
-convert_case = "<1.0"
+tiny-orm-macros = { version = "0.2.0", path = "./tiny-orm-macros", features = [] }
 sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]
 default = []
-sqlite = ["sqlx/sqlite"]
-postgres = ["sqlx/postgres"]
-mysql = ["sqlx/mysql"]
+sqlite = ["sqlx/sqlite", "tiny-orm-macros/sqlite"]
+postgres = ["sqlx/postgres", "tiny-orm-macros/postgres"]
+mysql = ["sqlx/mysql", "tiny-orm-macros/mysql"]
 
 [dev-dependencies]
 sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "derive"] }
-tiny-orm = { path = "." }
 tokio = { version = "1.41.0", features = ["rt", "macros"]}
 uuid = {version = "1.11.0", features = ["v4"]}

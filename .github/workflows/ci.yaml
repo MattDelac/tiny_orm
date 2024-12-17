@@ -22,14 +22,15 @@ jobs:
         run: |
           cargo install cargo-rdme
           cargo rdme --check
-      - name: Package the library
-        run: cargo package --features sqlite
 
   unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+
+      - name: Run doc tests
+        run: cargo test --doc --workspace --features sqlite
 
       - name: Run lib tests on sqlite
         run: cargo test --lib --features sqlite
