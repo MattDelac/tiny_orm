@@ -216,6 +216,12 @@ impl Todo {
 
 <!-- cargo-rdme end -->
 
+#### `SetOption`
+`SetOption` is an Enum that behaves similarly to `Option`. The main difference is that Tiny ORM will automatically exclude the fields once they are `Unset`.  
+The goal is to not always push all the fields during update or create operations. This would avoid some potential data race condition if the local struct is out of date with what the database has.  
+You can check [tiny-orm-core/src/lib.rs](./tiny-orm-core/src/lib.rs) but `SetOption` implement most of the Traits needed to automatically be used with Sqlx (Encode, Decode) as well as useful methods like `.inner(), .is_set() & .is_not_set()`.  
+You can check the [`sqlite-setoption` example](./examples/sqlite-setoption/main.rs) to see it in action.
+
 ## Migrations
 ### From 0.1.* to 0.2.*
 In 0.2.0, the API was stabilized with the fact that
