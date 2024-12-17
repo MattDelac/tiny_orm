@@ -26,9 +26,12 @@ define update_version
 	@NEXT_VERSION="$(1)" && \
 	CURRENT_VERSION="$(VERSION)" && \
 	perl -pi -e 's/version = "'"$$CURRENT_VERSION"'"/version = "'"$$NEXT_VERSION"'"/' Cargo.toml && \
+	perl -pi -e 's/tiny-orm-macros = \{ version = "'"$$CURRENT_VERSION"'"/tiny-orm-core = { version = "'"$$NEXT_VERSION"'"/' Cargo.toml && \
 	perl -pi -e 's/tiny-orm-macros = \{ version = "'"$$CURRENT_VERSION"'"/tiny-orm-macros = { version = "'"$$NEXT_VERSION"'"/' Cargo.toml && \
+	perl -pi -e 's/version = "'"$$CURRENT_VERSION"'"/version = "'"$$NEXT_VERSION"'"/' tiny-orm-core/Cargo.toml && \
 	perl -pi -e 's/version = "'"$$CURRENT_VERSION"'"/version = "'"$$NEXT_VERSION"'"/' tiny-orm-macros/Cargo.toml && \
-		perl -pi -e 's/tiny-orm = \{version = "'"$$CURRENT_VERSION"'"/tiny-orm = {version = "'"$$NEXT_VERSION"'"/' README.md && \
+	perl -pi -e 's/tiny-orm-macros = \{ version = "'"$$CURRENT_VERSION"'"/tiny-orm-core = { version = "'"$$NEXT_VERSION"'"/' tiny-orm-macros/Cargo.toml && \
+	perl -pi -e 's/tiny-orm = \{version = "'"$$CURRENT_VERSION"'"/tiny-orm = {version = "'"$$NEXT_VERSION"'"/' README.md && \
 	perl -pi -e 's/tiny-orm\/'"$$CURRENT_VERSION"'\/tiny_orm/tiny-orm\/'"$$NEXT_VERSION"'\/tiny_orm/' README.md
 
 	echo "Version updated to $$NEXT_VERSION from $$CURRENT_VERSION in all files"

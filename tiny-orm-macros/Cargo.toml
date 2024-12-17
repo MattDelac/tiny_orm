@@ -13,6 +13,7 @@ proc-macro = true
 
 [dependencies]
 syn = { version = "2.0", features = ["full", "extra-traits"] }
+tiny-orm-core = { version = "0.2.0", path = "../tiny-orm-core" }
 quote = "1.0"
 proc-macro2 = "1.0"
 convert_case = "<1.0"
