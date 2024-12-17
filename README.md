@@ -22,7 +22,7 @@ cargo install tiny-orm -F postgres # sqlite or mysql
 Or add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-tiny-orm = {version = "0.3.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
+tiny-orm = {version = "0.3.1", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
 ## Principles & advantages of TinyORM
@@ -219,7 +219,7 @@ impl Todo {
 #### `SetOption`
 `SetOption` is an Enum that behaves similarly to `Option`. The main difference is that Tiny ORM will automatically exclude the fields once they are `Unset`.  
 The goal is to not always push all the fields during update or create operations. This would avoid some potential data race condition if the local struct is out of date with what the database has.  
-You can check [tiny-orm-core/src/lib.rs](./tiny-orm-core/src/lib.rs) but `SetOption` implement most of the Traits needed to automatically be used with Sqlx (Encode, Decode) as well as useful methods like `.inner(), .is_set() & .is_not_set()`.  
+You can check [tiny-orm-model/src/lib.rs](./tiny-orm-model/src/lib.rs) but `SetOption` implement most of the Traits needed to automatically be used with Sqlx (Encode, Decode) as well as useful methods like `.inner(), .is_set() & .is_not_set()`.  
 You can check the [`sqlite-setoption` example](./examples/sqlite-setoption/main.rs) to see it in action.
 
 ## Migrations
