@@ -22,8 +22,6 @@ jobs:
         run: |
           cargo install cargo-rdme
           cargo rdme --check
-      - name: Package the library
-        run: cargo package --features sqlite
 
   unit-tests:
     runs-on: ubuntu-latest
