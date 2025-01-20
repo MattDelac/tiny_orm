@@ -127,6 +127,15 @@ pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
         Some(ref pk) => (&pk.name, &pk._type),
         None => panic!("No primary key field found which is mandatory for the 'get' operation"),
     };
+
+    let where_statement = match attr.soft_deletion {
+        true => quote! {
+            qb.push(" WHERE deleted_at IS NULL AND ");
+        },
+        false => quote! {
+            qb.push(" WHERE ");
+        },
+    };
     quote! {
         pub async fn get_by_id<'e, E>(db: E, id: #pk_type) -> #function_output
         where
@@ -134,7 +143,7 @@ pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
         {
         let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
             qb.push(#table_name);
-            qb.push(" WHERE ");
+            #where_statement
             qb.push(#pk_name);
             qb.push(" = ");
             qb.push_bind(id);
@@ -151,6 +160,13 @@ pub fn list_all_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let query_builder_execution = return_type.query_builder_execution();
     let table_name = attr.parsed_struct.table_name.clone().to_string();
 
+    let where_statement = match attr.soft_deletion {
+        true => quote! {
+            qb.push(" WHERE deleted_at IS NULL ");
+        },
+        false => quote! {},
+    };
+
     quote! {
         pub async fn list_all<'e, E>(db: E) -> #function_output
         where
@@ -158,6 +174,7 @@ pub fn list_all_fn(attr: &Attr) -> proc_macro2::TokenStream {
         {
             let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
             qb.push(#table_name);
+            #where_statement
             #query_builder_execution
         }
     }
@@ -296,6 +313,15 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
         fields_quote.push(str_quote);
     }
 
+    let where_statement = match attr.soft_deletion {
+        true => quote! {
+            qb.push(" WHERE deleted_at IS NULL AND ");
+        },
+        false => quote! {
+            qb.push(" WHERE ");
+        },
+    };
+
     quote! {
         pub async fn update<'e, E>(&self, db: E) -> #function_output
         where
@@ -308,7 +334,7 @@ pub fn update_fn(attr: &Attr) -> proc_macro2::TokenStream {
             let mut first = true;
             #(#fields_quote)*
 
-            qb.push(" WHERE ");
+            #where_statement
             qb.push(#pk_name);
             qb.push(" = ");
             qb.push_bind(&self.#pk_ident);
@@ -330,14 +356,42 @@ pub fn delete_fn(attr: &Attr) -> proc_macro2::TokenStream {
         Some(ref pk) => (&pk.name, &pk.ident),
         None => panic!("No primary key field found"),
     };
+    let delete_statement = match (attr.soft_deletion, database::db_type()) {
+        (true, DbType::Postgres) => quote! {
+            let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+            qb.push(#table_name);
+            qb.push(" SET deleted_at = NOW() ");
+        },
+        (true, DbType::MySQL) => quote! {
+            let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+            qb.push(#table_name);
+            qb.push(" SET deleted_at = CURRENT_TIMESTAMP ");
+        },
+        (true, DbType::Sqlite) => quote! {
+            let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+            qb.push(#table_name);
+            qb.push(" SET deleted_at = DATETIME('now') ");
+        },
+        (false, _) => quote! {
+            let mut qb = ::sqlx::QueryBuilder::new("DELETE FROM ");
+            qb.push(#table_name);
+        },
+    };
+    let where_statement = match attr.soft_deletion {
+        true => quote! {
+            qb.push(" WHERE deleted_at IS NULL AND ");
+        },
+        false => quote! {
+            qb.push(" WHERE ");
+        },
+    };
     quote! {
         pub async fn delete<'e, E>(&self, db: E) -> #function_output
         where
             E: ::sqlx::#db_type_ident<'e>
         {
-            let mut qb = ::sqlx::QueryBuilder::new("DELETE FROM ");
-            qb.push(#table_name);
-            qb.push(" WHERE ");
+            #delete_statement
+            #where_statement
             qb.push(#pk_name);
             qb.push(" = ");
             qb.push_bind(&self.#pk_ident);
@@ -377,7 +431,7 @@ mod tests {
 
         use super::*;
 
-        fn input(auto_increment: bool) -> Attr {
+        fn input(auto_increment: bool, soft_deletion: bool) -> Attr {
             let mut primary_key = Column::new("id", parse_quote!(i64));
             primary_key.set_primary_key();
             if auto_increment {
@@ -398,6 +452,7 @@ mod tests {
                     Column::new("last_name", parse_quote!(String)),
                 ],
                 operations: Operation::all(),
+                soft_deletion,
             }
         }
 
@@ -405,7 +460,7 @@ mod tests {
         #[test]
         fn test_generate_create_method() {
             let db_ident = db_ident();
-            let generated = clean_tokens(create_fn(&input(false)));
+            let generated = clean_tokens(create_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
@@ -447,7 +502,7 @@ mod tests {
         #[cfg(feature = "mysql")]
         #[test]
         fn test_generate_create_method() {
-            let generated = clean_tokens(create_fn(&input(false)));
+            let generated = clean_tokens(create_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
@@ -488,7 +543,7 @@ mod tests {
         #[test]
         fn test_generate_create_method_with_auto_primary_key() {
             let db_ident = db_ident();
-            let generated = clean_tokens(create_fn(&input(true)));
+            let generated = clean_tokens(create_fn(&input(true, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
@@ -528,7 +583,7 @@ mod tests {
         #[cfg(feature = "mysql")]
         #[test]
         fn test_generate_create_method_with_auto_primary_key() {
-            let generated = clean_tokens(create_fn(&input(true)));
+            let generated = clean_tokens(create_fn(&input(true, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn create<'e, E>(&self, db: E) -> ::sqlx::Result<i64>
@@ -565,7 +620,7 @@ mod tests {
         #[test]
         fn test_generate_get_by_id_method() {
             let db_ident = db_ident();
-            let generated = clean_tokens(get_by_id_fn(&input(false)));
+            let generated = clean_tokens(get_by_id_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn get_by_id<'e, E>(db: E, id: i64) -> ::sqlx::Result<Option<Self>>
@@ -589,9 +644,35 @@ mod tests {
         }
 
         #[test]
+        fn test_generate_get_by_id_method_with_soft_deletion() {
+            let db_ident = db_ident();
+            let generated = clean_tokens(get_by_id_fn(&input(false, true)));
+
+            let expected = clean_tokens(quote! {
+                pub async fn get_by_id<'e, E>(db: E, id: i64) -> ::sqlx::Result<Option<Self>>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
+                    qb.push("contact");
+                    qb.push(" WHERE deleted_at IS NULL AND ");
+                    qb.push("id");
+                    qb.push(" = ");
+                    qb.push_bind(id);
+
+                    qb.build_query_as()
+                    .fetch_optional(db)
+                    .await
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
+
+        #[test]
         fn test_generate_list_all_method() {
             let db_ident = db_ident();
-            let generated = clean_tokens(list_all_fn(&input(false)));
+            let generated = clean_tokens(list_all_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn list_all<'e, E>(db: E) -> ::sqlx::Result<Vec<Self>>
@@ -609,11 +690,33 @@ mod tests {
 
             assert_eq!(generated, expected);
         }
+        #[test]
+        fn test_generate_list_all_method_with_soft_deletion() {
+            let db_ident = db_ident();
+            let generated = clean_tokens(list_all_fn(&input(false, true)));
+
+            let expected = clean_tokens(quote! {
+                pub async fn list_all<'e, E>(db: E) -> ::sqlx::Result<Vec<Self>>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("SELECT * FROM ");
+                    qb.push("contact");
+                    qb.push("WHERE deleted_at IS NULL ");
+
+                    qb.build_query_as()
+                    .fetch_all(db)
+                    .await
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
 
         #[test]
         fn test_generate_update_method() {
             let db_ident = db_ident();
-            let generated = clean_tokens(update_fn(&input(false)));
+            let generated = clean_tokens(update_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<()>
@@ -664,11 +767,65 @@ mod tests {
 
             assert_eq!(generated, expected);
         }
+        #[test]
+        fn test_generate_update_method_with_soft_deletion() {
+            let db_ident = db_ident();
+            let generated = clean_tokens(update_fn(&input(false, true)));
+
+            let expected = clean_tokens(quote! {
+                pub async fn update<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET ");
+
+                    let mut first = true;
+
+                    if !first {
+                        qb.push(",");
+                    }
+                    qb.push("created_at");
+                    qb.push(" = ");
+                    qb.push_bind(&self.created_at);
+                    first = false;
+
+                    if !first {
+                        qb.push(",");
+                    }
+                    qb.push("updated_at");
+                    qb.push(" = ");
+                    qb.push_bind(&self.updated_at);
+                    first = false;
+
+                    if !first {
+                        qb.push(",");
+                    }
+                    qb.push("last_name");
+                    qb.push(" = ");
+                    qb.push_bind(&self.last_name);
+                    first = false;
+
+                    qb.push(" WHERE deleted_at IS NULL AND ");
+                    qb.push("id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.id);
+
+                    qb.build()
+                    .execute(db)
+                    .await
+                    .map(|_|())
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
 
         #[test]
         fn test_generate_delete_method() {
             let db_ident = db_ident();
-            let generated = clean_tokens(delete_fn(&input(false)));
+            let generated = clean_tokens(delete_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
                 pub async fn delete<'e, E>(&self, db: E) -> ::sqlx::Result<()>
@@ -691,18 +848,98 @@ mod tests {
 
             assert_eq!(generated, expected);
         }
+        #[cfg(feature = "sqlite")]
+        #[test]
+        fn test_generate_delete_method_with_soft_deletion() {
+            let db_ident = db_ident();
+            let generated = clean_tokens(delete_fn(&input(false, true)));
+
+            let expected = clean_tokens(quote! {
+                pub async fn delete<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET deleted_at = DATETIME('now') ");
+                    qb.push(" WHERE deleted_at IS NULL AND ");
+                    qb.push("id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.id);
+                    qb.build()
+                    .execute(db)
+                    .await
+                    .map(|_| ())
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
+        #[cfg(feature = "postgres")]
+        #[test]
+        fn test_generate_delete_method_with_soft_deletion() {
+            let db_ident = db_ident();
+            let generated = clean_tokens(delete_fn(&input(false, true)));
+
+            let expected = clean_tokens(quote! {
+                pub async fn delete<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET deleted_at = NOW() ");
+                    qb.push(" WHERE deleted_at IS NULL AND ");
+                    qb.push("id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.id);
+                    qb.build()
+                    .execute(db)
+                    .await
+                    .map(|_| ())
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
+        #[cfg(feature = "mysql")]
+        #[test]
+        fn test_generate_delete_method_with_soft_deletion() {
+            let db_ident = db_ident();
+            let generated = clean_tokens(delete_fn(&input(false, true)));
+
+            let expected = clean_tokens(quote! {
+                pub async fn delete<'e, E>(&self, db: E) -> ::sqlx::Result<()>
+                where
+                    E: ::sqlx::#db_ident<'e>
+                {
+                    let mut qb = ::sqlx::QueryBuilder::new("UPDATE ");
+                    qb.push("contact");
+                    qb.push(" SET deleted_at = CURRENT_TIMESTAMP ");
+                    qb.push(" WHERE deleted_at IS NULL AND ");
+                    qb.push("id");
+                    qb.push(" = ");
+                    qb.push_bind(&self.id);
+                    qb.build()
+                    .execute(db)
+                    .await
+                    .map(|_| ())
+                }
+            });
+
+            assert_eq!(generated, expected);
+        }
     }
 
     mod custom {
         use super::*;
         use crate::attr::Attr;
         use crate::types::*;
+        use syn::parse_quote;
 
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_custom_output_create() {
-            use syn::parse_quote;
-
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let input = Attr {
@@ -714,6 +951,7 @@ mod tests {
                     Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(create_fn(&input));
@@ -764,6 +1002,7 @@ mod tests {
                     Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
+                soft_deletion: false,
             };
 
             create_fn(&input);
@@ -772,8 +1011,6 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_setoption_create_null_pk() {
-            use syn::parse_quote;
-
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let input = Attr {
@@ -785,6 +1022,7 @@ mod tests {
                     Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(create_fn(&input));
@@ -832,8 +1070,6 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_setoption_create_auto_generated_pk() {
-            use syn::parse_quote;
-
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let mut primary_key = Column::new("incremental_id", parse_quote!(i64));
@@ -849,6 +1085,7 @@ mod tests {
                     Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(create_fn(&input));
@@ -898,8 +1135,6 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_setoption_create_custom_pk() {
-            use syn::parse_quote;
-
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("NewContact"), None, None);
             let mut primary_key = Column::new("uuid", parse_quote!(Uuid));
@@ -914,6 +1149,7 @@ mod tests {
                     Column::new("email", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Create],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(create_fn(&input));
@@ -965,7 +1201,6 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_custom_output_update() {
-            use syn::parse_quote;
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let mut primary_key = Column::new("custom_id", parse_quote!(i64));
@@ -976,6 +1211,7 @@ mod tests {
                 primary_key: Some(primary_key.clone()),
                 columns: vec![primary_key, Column::new("first_name", parse_quote!(String))],
                 operations: vec![Operation::Update],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(update_fn(&input));
@@ -1018,7 +1254,6 @@ mod tests {
         #[cfg(feature = "mysql")]
         #[test]
         fn test_custom_output_update() {
-            use syn::parse_quote;
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let mut primary_key = Column::new("custom_id", parse_quote!(i64));
             primary_key.set_primary_key();
@@ -1028,6 +1263,7 @@ mod tests {
                 primary_key: Some(primary_key.clone()),
                 columns: vec![primary_key, Column::new("first_name", parse_quote!(String))],
                 operations: vec![Operation::Update],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(update_fn(&input));
@@ -1069,7 +1305,6 @@ mod tests {
         #[cfg(not(feature = "mysql"))]
         #[test]
         fn test_custom_output_update_setoption() {
-            use syn::parse_quote;
             let db_ident = db_ident();
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let mut primary_key = Column::new("custom_id", parse_quote!(i64));
@@ -1084,6 +1319,7 @@ mod tests {
                     Column::new("last_name", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Update],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(update_fn(&input));
@@ -1135,7 +1371,6 @@ mod tests {
         #[cfg(feature = "mysql")]
         #[test]
         fn test_custom_output_update_setoption() {
-            use syn::parse_quote;
             let parsed_struct = ParsedStruct::new(&format_ident!("UpdateContact"), None, None);
             let mut primary_key = Column::new("custom_id", parse_quote!(i64));
             primary_key.set_primary_key();
@@ -1149,6 +1384,7 @@ mod tests {
                     Column::new("last_name", parse_quote!(String)),
                 ],
                 operations: vec![Operation::Update],
+                soft_deletion: false,
             };
 
             let generated = clean_tokens(update_fn(&input));

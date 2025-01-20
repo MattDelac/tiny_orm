@@ -52,6 +52,8 @@
 //!   Default would be nothing.
 //! - **all**: All the methods will be available to the struct. This will override the default values when none are provided.
 //!   Default none.
+//! - **soft_deletion**: When set to true, it will add a `deleted_at` filter when querying the data. When using the `delete` method, it will set the `deleted_at` column to the current timestamp.
+//!   Default false.
 //! - **return_object**: A custom object that would be returned instead of `Self`. Useful when creating or updating records with partial information.
 //!   Default is `Self` which corresponds to the current Strut.
 //!
@@ -65,7 +67,7 @@
 //! - Everything else would be the equivalent of using the following
 //!   `#[tiny_orm(table_name = "table_name", return_object = "Self", exclude = "create,update")]`
 //!
-//! Example
+//! ### Example using the default options
 //! ```rust
 //! # use tiny_orm::Table;
 //! # use uuid::Uuid;
@@ -119,6 +121,30 @@
 //!         // For MySQL, it would always return nothing `()` as it
 //!         // cannot return a record after an update.
 //!     }
+//! }
+//! ```
+//!
+//! ### Example using the soft_deletion option
+//! ```rust
+//! # use tiny_orm::Table;
+//! # use uuid::Uuid;
+//! # use sqlx::{FromRow, types::chrono::{DateTime, Utc}};
+//! #[derive(Debug, FromRow, Table, Clone)]
+//! #[tiny_orm(soft_deletion)]
+//! struct Todo {
+//!     id: i32,
+//!     created_at: DateTime<Utc>,
+//!     updated_at: DateTime<Utc>,
+//!     deleted_at: DateTime<Utc>,
+//!     description: String,
+//!     done: bool,
+//! }
+//!
+//! #[derive(Debug, FromRow, Table, Clone)]
+//! #[tiny_orm(soft_deletion)]
+//! struct UpdateTodo {
+//!     id: i32,
+//!     done: bool
 //! }
 //! ```
 //!
