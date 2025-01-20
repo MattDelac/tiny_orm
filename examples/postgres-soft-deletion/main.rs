@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 #[allow(unused_variables, dead_code)]
 #[derive(Debug, FromRow, Table, Clone)]
-#[tiny_orm(soft_deletion)]
+#[tiny_orm(table_name = "todo_soft_deleted", soft_deletion)]
 struct Todo {
     // Table name would automatically be `todo`. Could be override with `#[tiny_orm(table_name = "xxx")]`
     #[tiny_orm(primary_key)]
@@ -34,14 +34,17 @@ impl Todo {
 */
 impl Todo {
     async fn get_soft_deleted_items(pool: &PgPool) -> Result<Vec<Todo>, sqlx::Error> {
-        let items = sqlx::query_as::<_, Todo>("SELECT * FROM todo WHERE deleted_at IS NOT NULL")
-            .fetch_all(pool)
-            .await?;
+        let items = sqlx::query_as::<_, Todo>(
+            "SELECT * FROM todo_soft_deleted WHERE deleted_at IS NOT NULL",
+        )
+        .fetch_all(pool)
+        .await?;
         Ok(items)
     }
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(table_name = "todo_soft_deleted")]
 struct NewTodo {
     description: String,
     done: bool,
@@ -64,6 +67,7 @@ impl NewTodo {
 }
 
 #[derive(Debug, FromRow, Table, Clone)]
+#[tiny_orm(table_name = "todo_soft_deleted", soft_deletion)]
 struct UpdateTodo {
     id: Uuid,
     description: String,
@@ -89,11 +93,9 @@ impl From<Todo> for UpdateTodo {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let m = Migrator::new(std::path::Path::new(
-        "examples/postgres-soft-deletion/migrations",
-    ))
-    .await
-    .unwrap();
+    let m = Migrator::new(std::path::Path::new("examples/postgres/migrations"))
+        .await
+        .unwrap();
     let pool = PgPool::connect("postgres://postgres:password@localhost/examples")
         .await
         .unwrap();
