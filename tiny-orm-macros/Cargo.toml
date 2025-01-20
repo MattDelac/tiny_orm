@@ -27,6 +27,6 @@ postgres = ["sqlx/postgres"]
 mysql = ["sqlx/mysql"]
 
 [dev-dependencies]
-sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "derive"] }
+sqlx = { version = "0.8.3", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid"] }
 tokio = { version = "1.41.0", features = ["rt", "macros"]}
 uuid = {version = "1.11.0", features = ["v4"]}
