@@ -29,12 +29,14 @@ tiny-orm-model = { version = "0.3.1", path = "./tiny-orm-model", features = [] }
 sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]
-default = []
-sqlite = ["sqlx/sqlite", "tiny-orm-macros/sqlite"]
-postgres = ["sqlx/postgres", "tiny-orm-macros/postgres"]
-mysql = ["sqlx/mysql", "tiny-orm-macros/mysql"]
+default = ["set-option"]
+sqlite = ["sqlx/sqlite", "tiny-orm-macros/sqlite", "tiny-orm-model/sqlite"]
+postgres = ["sqlx/postgres", "tiny-orm-macros/postgres", "tiny-orm-model/postgres"]
+mysql = ["sqlx/mysql", "tiny-orm-macros/mysql", "tiny-orm-model/mysql"]
+"sqlx-0.7" = ["tiny-orm-model/sqlx-0.7"]  # Backward compatibility with sqlx 0.7.*
+set-option = ["tiny-orm-model/set-option"]  # To use the SetOption struct which skips fields in the update query when they are NotSet
 
 [dev-dependencies]
-sqlx = { version = "0.8.2", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "derive"] }
+sqlx = { version = "0.8.3", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "any"] }
 tokio = { version = "1.41.0", features = ["rt", "macros"]}
 uuid = {version = "1.11.0", features = ["v4"]}

@@ -25,6 +25,9 @@ Or add this to your `Cargo.toml`:
 tiny-orm = {version = "0.3.1", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
+### Features
+Check [Cargo.toml](./Cargo.toml) to see all the features available.
+
 ## Principles & advantages of TinyORM
 The goals of this library are
 - To have the least amount of dependencies

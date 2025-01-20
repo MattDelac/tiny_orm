@@ -23,14 +23,17 @@ jobs:
           cargo install cargo-rdme
           cargo rdme --check
 
-  unit-tests:
+  unit-tests-sqlx-0-8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
 
-      - name: Run doc tests
+      - name: Run doc tests sqlite
         run: cargo test --doc --workspace --features sqlite
+
+      - name: Run doc tests postgres
+        run: cargo test --doc --workspace --features postgres
 
       - name: Run lib tests on sqlite
         run: cargo test --lib --features sqlite
@@ -44,6 +47,36 @@ jobs:
       - name: Run the integration tests on Sqlite only
         run: cargo test --tests --features sqlite
 
+  unit-tests-sqlx-0-7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: sqlx-0.7
+
+      - name: Change the version of sqlx in the Cargo.toml
+        run: |
+            sed -i 's/version = "0.8.3"/version = "0.7.4"/g' Cargo.toml
+            sed -i 's/version = "0.8.3"/version = "0.7.4"/g' tiny-orm-macros/Cargo.toml
+
+      - name: Run doc tests sqlite
+        run: cargo test --doc --workspace --features sqlite --features sqlx-0.7
+
+      - name: Run doc tests postgres
+        run: cargo test --doc --workspace --features postgres --features sqlx-0.7
+
+      - name: Run lib tests on sqlite
+        run: cargo test --lib --features sqlite --features sqlx-0.7
+
+      - name: Run lib tests on postgres
+        run: cargo test --lib --features postgres --features sqlx-0.7
+
+      - name: Run lib tests on mysql
+        run: cargo test --lib --features mysql --features sqlx-0.7
+
+      - name: Run the integration tests on Sqlite only
+        run: cargo test --tests --features sqlite --features sqlx-0.7
 
   example-tests:
     runs-on: ubuntu-latest
