@@ -1,6 +1,6 @@
 [package]
 name = "tiny-orm"
-version = "0.3.3"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.74.1"
 authors = ["Matt Delacour - mdelacour.com"]
@@ -24,8 +24,8 @@ include = [
 members = ["tiny-orm-model", "tiny-orm-macros"]
 
 [dependencies]
-tiny-orm-macros = { version = "0.3.3", path = "./tiny-orm-macros", features = [] }
-tiny-orm-model = { version = "0.3.3", path = "./tiny-orm-model", features = [] }
+tiny-orm-macros = { version = "0.4.0", path = "./tiny-orm-macros", features = [] }
+tiny-orm-model = { version = "0.4.0", path = "./tiny-orm-model", features = [] }
 sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]

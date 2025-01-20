@@ -22,7 +22,7 @@ cargo install tiny-orm -F postgres # sqlite or mysql
 Or add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-tiny-orm = {version = "0.3.3", features = ["postgres"] } # Choose between sqlite, mysql and postgres
+tiny-orm = {version = "0.4.0", features = ["postgres"] } # Choose between sqlite, mysql and postgres
 ```
 
 ### Features
