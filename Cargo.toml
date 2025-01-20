@@ -36,6 +36,9 @@ mysql = ["sqlx/mysql", "tiny-orm-macros/mysql", "tiny-orm-model/mysql"]
 "sqlx-0.7" = ["tiny-orm-model/sqlx-0.7"]  # Backward compatibility with sqlx 0.7.*
 set-option = ["tiny-orm-model/set-option"]  # To use the SetOption struct which skips fields in the update query when they are NotSet
 
+[package.metadata.docs.rs]
+features = ["sqlite"]
+
 [dev-dependencies]
 sqlx = { version = "0.8.3", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "uuid", "any"] }
 tokio = { version = "1.41.0", features = ["rt", "macros"]}
