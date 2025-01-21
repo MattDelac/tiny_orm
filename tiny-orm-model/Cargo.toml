@@ -2,7 +2,7 @@
 name = "tiny-orm-model"
 version = "0.4.0"
 edition = "2021"
-rust-version = "1.74.1"
+rust-version = "1.80.0"
 authors = ["Matt Delacour - mdelacour.com"]
 description = "Struct and Trait avaiable for Tiny ORM. Not intended to be used directly."
 license = "MIT"

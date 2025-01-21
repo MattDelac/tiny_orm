@@ -1,12 +1,12 @@
 use convert_case::{Case, Casing};
-use once_cell::sync::Lazy;
 use quote::{format_ident, ToTokens};
 use regex::Regex;
+use std::sync::LazyLock;
 use std::{fmt, str::FromStr};
 use syn::{Ident, Type};
 
-static FIND_SET_OPTION_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(?:tiny_orm\s*::\s*)*SetOption\s*<").unwrap());
+static FIND_SET_OPTION_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?:tiny_orm\s*::\s*)*SetOption\s*<").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StructType {

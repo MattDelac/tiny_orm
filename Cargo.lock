@@ -1485,7 +1485,6 @@ name = "tiny-orm-macros"
 version = "0.4.0"
 dependencies = [
  "convert_case",
- "once_cell",
  "proc-macro2",
  "quote",
  "regex",
