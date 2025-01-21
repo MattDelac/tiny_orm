@@ -1,4 +1,6 @@
 #![cfg(feature = "set-option")]
+pub mod errors;
+pub use crate::errors::TinyOrmError;
 
 /// tiny_orm::SetOption is an enum that behave similarly to `Option` in the sense that there are only two variants.
 /// The goal is to easily differentiate between an Option type and a SetOption type.
@@ -60,8 +62,7 @@ impl<T> From<SetOption<T>> for Result<T, &'static str> {
 
 impl<T> SetOption<T> {
     /// `inner()` is a method to get the inner value as an Option type.
-    /// This return an `Option<T>` type wher `Some<T>` is corresponds when the value
-    /// was using the `Set` variant,
+    /// This return an `Option<T>` type where `Some<T>` corresponds to the `Set` variant,
     ///
     /// # Examples
     /// ```rust
@@ -81,6 +82,30 @@ impl<T> SetOption<T> {
         match self {
             SetOption::NotSet => None,
             SetOption::Set(value) => Some(value),
+        }
+    }
+
+    /// `value()` is a method to get the inner value as an Result type.
+    /// This return an `Result<T, TinyOrmError>` type where `Ok<T>` corresponds to the `Set` variant,
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use tiny_orm_model::SetOption;
+    /// let set = SetOption::Set(1);
+    /// let inner = set.value();
+    /// assert_eq!(inner, Ok(1));
+    /// ```
+    ///
+    /// ```rust
+    /// use tiny_orm_model::{SetOption, TinyOrmError};
+    /// let not_set: SetOption<i32> = SetOption::NotSet;
+    /// let inner = not_set.value();
+    /// assert_eq!(inner, Err(TinyOrmError::SetOptionNotSet));
+    /// ```
+    pub fn value(self) -> Result<T, TinyOrmError> {
+        match self {
+            SetOption::NotSet => Err(TinyOrmError::SetOptionNotSet),
+            SetOption::Set(value) => Ok(value),
         }
     }
 
