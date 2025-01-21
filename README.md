@@ -44,13 +44,14 @@ Why TinyORM over another one?
 -- [SQLx](https://github.com/launchbadge/sqlx)  
 -- [convert_case](https://github.com/rutrum/convert-case)  
 -- [regex](https://crates.io/crates/regex)  
--- [lazy_static](https://crates.io/crates/https://crates.io/crates/lazy_static)  
 
 - Intuitive with smart defaults and flexible
 
 ### MSRV
 MSRV has been tested with `cargo-msrv find --features sqlite`. You can learn more about [cargo-msrv on their website](https://gribnau.dev/cargo-msrv/getting-started/quick-start.html).  
-Latest check ran on 0.2.0.
+
+- 1.74.1 for `tiny_orm <= 4.0.0`
+- 1.80.0 for `tiny_orm > 4.0.0`
 
 ## License
 This project is licensed under [MIT] - see the [LICENSE](LICENSE) file for details.

@@ -2,7 +2,7 @@
 name = "tiny-orm"
 version = "0.4.0"
 edition = "2021"
-rust-version = "1.74.1"
+rust-version = "1.80.0"
 authors = ["Matt Delacour - mdelacour.com"]
 description = "A tiny ORM for CRUD operations built on top of SQLx QueryBuilder."
 license = "MIT"
