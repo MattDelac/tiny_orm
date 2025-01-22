@@ -14,6 +14,18 @@ A minimal ORM for CRUD operations. Built on top of SQLx and with its QueryBuilde
 
 This library is the one I wished I had when I built a project in Rust in production and did not want a heavy ORM.
 
+## Should you use TinyORM?
+
+You should consider using TinyORM if...
+- You mostly need to run CRUD operations on your database
+- You use raw SQL (or a Query Builder) for more complex queries
+
+You should NOT use TinyORM, if...
+- You expect it to be a full ORM like [SeaORM](https://github.com/SeaQL/sea-orm) or [Diesel](https://github.com/diesel-rs/diesel)
+- You need the queries to be checked at compile time
+- You need a "no-std" environment (since it's built on top of SQLx)
+- You don't want to use [SQLx](https://github.com/launchbadge/sqlx)
+
 ## Installation
 ```sh
 cargo install tiny-orm -F postgres # sqlite or mysql
