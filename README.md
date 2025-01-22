@@ -106,7 +106,7 @@ The Table macro comes with a few options to give flexibility to the user
 
 ##### At the Struct level
 - **table_name**: The name of the table in the database.
-  Default being a lower_case version of the Struct name. So `MyStruct` would have `my_struct` as a default `table_name`.
+  Default being a snake_case version of the Struct name. So `MyStruct` would have `my_struct` as a default `table_name`.
 - **only**: The methods that will only be available to that struct. Multiple values are comma separated.
   Default is dependent on the struct name (see below).
 - **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated
