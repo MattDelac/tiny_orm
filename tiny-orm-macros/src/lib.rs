@@ -1,5 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
+use quotes::get_table_name;
 use syn::{parse_macro_input, DeriveInput};
 use types::Operation;
 
@@ -23,6 +24,12 @@ pub fn derive_tiny_orm(input: TokenStream) -> TokenStream {
 
 fn generate_impl(attr: &attr::Attr) -> proc_macro2::TokenStream {
     let struct_name = attr.parsed_struct.name.clone();
+
+    let table_name_fn = if attr.parsed_struct.struct_type == types::StructType::Generic {
+        get_table_name(attr)
+    } else {
+        quote! {}
+    };
 
     let get_impl = if attr.operations.contains(&Operation::Get) {
         quotes::get_by_id_fn(attr)
@@ -56,6 +63,7 @@ fn generate_impl(attr: &attr::Attr) -> proc_macro2::TokenStream {
 
     quote! {
         impl #struct_name {
+            #table_name_fn
             #get_impl
             #list_impl
             #create_impl
