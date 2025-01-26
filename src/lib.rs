@@ -49,7 +49,9 @@
 //! - **only**: The methods that will only be available to that struct. Multiple values are comma separated.
 //!   Default is dependent on the struct name (see below).
 //! - **exclude**: The methods that will be excluded for that struct. Multiple values are comma separated
-//!   Default would be nothing.
+//!   Default empty vec.
+//! - **add**: The methods that will be added for that struct. Multiple values are comma separated
+//!   Default empty vec.
 //! - **all**: All the methods will be available to the struct. This will override the default values when none are provided.
 //!   Default none.
 //! - **soft_deletion**: When set to true, it will add a `deleted_at` filter when querying the data. When using the `delete` method, it will set the `deleted_at` column to the current timestamp.
@@ -57,7 +59,7 @@
 //! - **return_object**: A custom object that would be returned instead of `Self`. Useful when creating or updating records with partial information.
 //!   Default is `Self` which corresponds to the current Strut.
 //!
-//! _Note: `only` and `exclude` cannot be used together._
+//! _Note: `only` cannot be used with `exclude` nor `add` cannot be used together._
 //!
 //! By convention, if a struct name
 //! - Starts with `New` then it will automatically use the following arguments
