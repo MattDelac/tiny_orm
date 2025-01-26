@@ -116,6 +116,15 @@ impl ReturnType {
     }
 }
 
+pub fn get_table_name(attr: &Attr) -> proc_macro2::TokenStream {
+    let table_name = attr.parsed_struct.table_name.0.as_str();
+    quote! {
+        pub fn table_name<'a>() -> &'a str {
+            #table_name
+        }
+    }
+}
+
 pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
     let db_type_ident = database::db_type().to_ident();
     let return_type = ReturnType::OptionalRow(attr.clone().parsed_struct.return_object);
@@ -454,6 +463,17 @@ mod tests {
                 operations: Operation::all(),
                 soft_deletion,
             }
+        }
+
+        #[test]
+        fn test_table_name() {
+            let generated = clean_tokens(get_table_name(&input(false, false)));
+            let expected = clean_tokens(quote! {
+                pub fn table_name<'a>() -> &'a str {
+                    "contact"
+                }
+            });
+            assert_eq!(generated, expected);
         }
 
         #[cfg(not(feature = "mysql"))]
