@@ -39,6 +39,11 @@ impl NewTodo {
     }
 }
 
+#[tokio::test]
+async fn test_table_name() {
+    assert_eq!(Todo::table_name(), "todo");
+}
+
 #[sqlx::test(migrations = "examples/sqlite/migrations")]
 async fn test_insert_and_get_by_id(pool: SqlitePool) {
     let description = "My new item".to_string();
