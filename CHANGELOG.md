@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.5.1] - 2025-01-27
 
 ### 🚀 Features
 
@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
-- Pass a reference of the id in get_by_id()
+- Pass a reference of the id in get_by_id() (#51)
 
 ## [0.5.0] - 2025-01-27
 
