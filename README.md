@@ -284,11 +284,9 @@ Goal of TinyORM is to stay tiny. That being said there are still a few things I 
 ## Release
 One PR with the following
 ```sh
-make release INCREMENT=patch
-```
-
-then add the tag and push it to main
-```sh
-git tag -a v0.2.0 -m "Release v0.2.0"
-git push origin main --tags
+make release INCREMENT=patch # patch | nimor | major
+git commit -am "chore(release): Bump to vX.X.X"
+git tag -a vX.X.X -m "Release vX.X.X"
+git cliff -o CHANGELOG.md # Update the CHANGELOG
+git commit -am "docs: Changelog for vX.X.X"
 ```
