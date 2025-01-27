@@ -6,7 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
-- Add value_ref() on SetOption to get a reference of the value
+- Add git cliff in CI to keep CHANGELOG up to date
+
+### 📚 Documentation
+
+- *(RELEASE)* Better release process
 
 ### ⚙️ Miscellaneous Tasks
 
