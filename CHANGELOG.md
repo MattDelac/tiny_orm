@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+## [0.5.0] - 2025-01-26
 ### Features
 
 - Add a method to get the value of a SetOption as a Result type #40
@@ -15,4 +16,4 @@ All notable changes to this project will be documented in this file.
 - (internal change) Reorganize tiny-orm-model #41
 - Remove the use of once_cell #42
 
-## [0.4.0] - 2025-01-25
+## [0.4.0] - 2025-01-20
