@@ -6,7 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
-- Add git-cliff
+- Add git-cliff (#50)
+
+### 🐛 Bug Fixes
+
+- Pass a reference of the id in get_by_id()
 
 ## [0.5.0] - 2025-01-27
 
