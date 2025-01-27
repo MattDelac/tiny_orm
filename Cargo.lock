@@ -1471,7 +1471,7 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "sqlx",
  "tiny-orm-macros",
@@ -1482,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm-macros"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -1497,7 +1497,7 @@ dependencies = [
 
 [[package]]
 name = "tiny-orm-model"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "sqlx",
  "tokio-test",
