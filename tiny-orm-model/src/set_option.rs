@@ -107,6 +107,30 @@ impl<T> SetOption<T> {
         }
     }
 
+    /// `value_ref()` is a method to get the inner value as an Result type.
+    /// This return an `Result<&T, TinyOrmError>` type where `Ok<&T>` corresponds to the `Set` variant,
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use tiny_orm_model::SetOption;
+    /// let set = SetOption::Set(1);
+    /// let inner = set.value_ref();
+    /// assert_eq!(inner, Ok(&1));
+    /// ```
+    ///
+    /// ```rust
+    /// use tiny_orm_model::{SetOption, TinyOrmError};
+    /// let not_set: SetOption<i32> = SetOption::NotSet;
+    /// let inner = not_set.value();
+    /// assert_eq!(inner, Err(TinyOrmError::SetOptionNotSet));
+    /// ```
+    pub fn value_ref(&self) -> Result<&T, TinyOrmError> {
+        match self {
+            SetOption::NotSet => Err(TinyOrmError::SetOptionNotSet),
+            SetOption::Set(value) => Ok(value),
+        }
+    }
+
     /// `is_set()` returns true if the variant is `Set`
     ///
     /// # Examples
