@@ -51,7 +51,7 @@ async fn main() {
         .expect("Todo item should be created");
     println!("My first todo created {:?}", todo.id);
 
-    let first_todo = Todo::get_by_id(&pool, todo.id).await.unwrap();
+    let first_todo = Todo::get_by_id(&pool, &todo.id).await.unwrap();
     match first_todo {
         Some(ref item) => println!("First todo item is {:?}", item),
         None => println!("Todo item does not exist for the id {}", todo.id),
@@ -66,7 +66,7 @@ async fn main() {
         .await
         .expect("Item should be updated");
 
-    let check_updated_item = Todo::get_by_id(&pool, todo.id).await.unwrap();
+    let check_updated_item = Todo::get_by_id(&pool, &todo.id).await.unwrap();
     match check_updated_item {
         Some(ref item) => println!("Updated item is {:?}", item),
         None => println!("Todo item does not exist for the id {}", todo.id),

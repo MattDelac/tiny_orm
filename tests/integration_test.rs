@@ -55,7 +55,7 @@ async fn test_insert_and_get_by_id(pool: SqlitePool) {
     assert!(inserted_item.updated_at < Utc::now());
     assert_eq!(inserted_item.description, description);
 
-    let checked_item = Todo::get_by_id(&pool, inserted_item.id)
+    let checked_item = Todo::get_by_id(&pool, &inserted_item.id)
         .await
         .unwrap()
         .unwrap();
@@ -75,7 +75,7 @@ async fn test_update(pool: SqlitePool) {
     updated_item.done = true;
     updated_item.update(&pool).await.unwrap();
 
-    let checked_item = Todo::get_by_id(&pool, updated_item.id)
+    let checked_item = Todo::get_by_id(&pool, &updated_item.id)
         .await
         .unwrap()
         .unwrap();
@@ -121,11 +121,11 @@ async fn test_delete(pool: SqlitePool) {
         .await
         .unwrap();
 
-    let retrieved_item = Todo::get_by_id(&pool, item.id).await.unwrap();
+    let retrieved_item = Todo::get_by_id(&pool, &item.id).await.unwrap();
     assert!(retrieved_item.is_some());
 
     item.delete(&pool).await.unwrap();
-    let retrieved_item = Todo::get_by_id(&pool, item.id).await.unwrap();
+    let retrieved_item = Todo::get_by_id(&pool, &item.id).await.unwrap();
     assert!(retrieved_item.is_none());
 }
 
@@ -146,7 +146,7 @@ async fn test_insert_get_with_a_transaction(pool: SqlitePool) {
 
     tx.commit().await.unwrap();
 
-    let checked_item = Todo::get_by_id(&pool, inserted_item.id)
+    let checked_item = Todo::get_by_id(&pool, &inserted_item.id)
         .await
         .unwrap()
         .unwrap();

@@ -146,7 +146,7 @@ pub fn get_by_id_fn(attr: &Attr) -> proc_macro2::TokenStream {
         },
     };
     quote! {
-        pub async fn get_by_id<'e, E>(db: E, id: #pk_type) -> #function_output
+        pub async fn get_by_id<'e, E>(db: E, id: &#pk_type) -> #function_output
         where
             E: ::sqlx::#db_type_ident<'e>
         {
@@ -643,7 +643,7 @@ mod tests {
             let generated = clean_tokens(get_by_id_fn(&input(false, false)));
 
             let expected = clean_tokens(quote! {
-                pub async fn get_by_id<'e, E>(db: E, id: i64) -> ::sqlx::Result<Option<Self>>
+                pub async fn get_by_id<'e, E>(db: E, id: &i64) -> ::sqlx::Result<Option<Self>>
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
@@ -669,7 +669,7 @@ mod tests {
             let generated = clean_tokens(get_by_id_fn(&input(false, true)));
 
             let expected = clean_tokens(quote! {
-                pub async fn get_by_id<'e, E>(db: E, id: i64) -> ::sqlx::Result<Option<Self>>
+                pub async fn get_by_id<'e, E>(db: E, id: &i64) -> ::sqlx::Result<Option<Self>>
                 where
                     E: ::sqlx::#db_ident<'e>
                 {
