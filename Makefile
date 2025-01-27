@@ -34,8 +34,6 @@ define update_version
 	perl -pi -e 's/tiny-orm = \{version = "'"$$CURRENT_VERSION"'"/tiny-orm = {version = "'"$$NEXT_VERSION"'"/' README.md && \
 	perl -pi -e 's/tiny-orm\/'"$$CURRENT_VERSION"'\/tiny_orm/tiny-orm\/'"$$NEXT_VERSION"'\/tiny_orm/' README.md
 
-	git tag -a "v$(1)" -m "Release $(1)"
-
 	@echo "Version updated to $(1) from $(VERSION) in all files"
 endef
 
