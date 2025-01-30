@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### 🚜 Refactor
 
-- Add Vscode settings with feature flag to slqite
+- Add Vscode settings with feature flag to slqite (#57)
+- Move linter of CHANGELOG in the release process
 
 ### ⚙️ Miscellaneous Tasks
 

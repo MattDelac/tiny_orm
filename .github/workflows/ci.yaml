@@ -23,24 +23,6 @@ jobs:
           cargo install cargo-rdme
           cargo rdme --check
 
-  lint-chamgelog:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Generate a changelog
-        uses: orhun/git-cliff-action@v3
-        env:
-          OUTPUT: CHANGELOG.md
-
-      - name: Verify no changes to CHANGELOG.md
-        run: |
-          if ! git diff --exit-code; then
-          echo 'Changes detected to the CHANGELOG.md, you must generate the CHANGELOG.md with `git cliff` and commit the changes.'
-          exit 1
-          fi
-
   unit-tests-sqlx-0-8:
     runs-on: ubuntu-latest
     steps:
