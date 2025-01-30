@@ -1,0 +1,8 @@
+{
+    "rust-analyzer.cargo.features": ["sqlite"],
+    "rust-analyzer.files.excludeDirs": [
+        "examples/mysql",
+        "examples/postgres",
+        "examples/postgres-soft-deletion"
+    ],
+}
