@@ -4,13 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
-### 🚀 Features
+### 🚜 Refactor
 
-- Add git cliff in CI to keep CHANGELOG up to date
-
-### 📚 Documentation
-
-- *(RELEASE)* Better release process
+- Add Vscode settings with feature flag to slqite
 
 ### ⚙️ Miscellaneous Tasks
 
