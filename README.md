@@ -28,7 +28,7 @@ You should NOT use TinyORM, if...
 
 ## Installation
 ```sh
-cargo install tiny-orm -F postgres # sqlite or mysql
+cargo add tiny-orm -F postgres # sqlite or mysql
 ```
 
 Or add this to your `Cargo.toml`:

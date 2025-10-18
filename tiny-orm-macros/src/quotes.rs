@@ -6,6 +6,7 @@ use crate::{
     types::{Column, PrimaryKey, ReturnObject},
 };
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 enum ReturnType {
     PrimaryKey(PrimaryKey),
